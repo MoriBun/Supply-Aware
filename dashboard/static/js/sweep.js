@@ -1,4 +1,4 @@
-// "Tìm θ*": launch a theta sweep (the experiment of spec D2) and watch N(π_θ) build up seed by seed.
+// "Tìm θ*": launch a theta sweep and watch N(π_θ) build up seed by seed.
 import { html, useState, useEffect, useMemo, api, useApi, useLocalStorage, cssVar, fmtInt, fmtNum, fmtVND, fmtPct,
   fmtSigned, fmtDur } from "./lib.js";
 import { LineChart, BarChart, StatTile, Table } from "./charts.js";
@@ -7,7 +7,7 @@ import { isRunning, S, StatusPill, STATUS_VI, gridIndex, parseNumbers, WORLDS, w
 const SWEEP_PRESETS = [
   { key: "fast", label: "Nhanh (demo): 6 θ × 2 seed, cửa sổ 4 giờ", grid: "0, 0.25, 0.5, 1, 2, 5", n_seeds: 2, window_min: 240 },
   { key: "std", label: "Chuẩn: lưới config × 10 seed, 1 ngày", grid: null, n_seeds: 10, window_min: "" },
-  { key: "ref", label: "Tham chiếu S10: 16 θ × 30 seed, 1 ngày (sweep_reference.yaml)", grid: "0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1, 1.25, 1.5, 2, 3, 5, 10, 30", n_seeds: 30, window_min: "" },
+  { key: "ref", label: "Tham chiếu: 16 θ × 30 seed, 1 ngày (sweep_reference.yaml)", grid: "0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1, 1.25, 1.5, 2, 3, 5, 10, 30", n_seeds: 30, window_min: "" },
 ];
 
 function initialForm(cfg, cpu) {
@@ -69,11 +69,11 @@ export function SweepPage({ defaults, runs, run, onStarted, onSelect }) {
   const sweeps = (runs || []).filter((r) => r.kind === "sweep");
   return html`<div className="stack">
     <div className="card">
-      <div className="card-head"><h2>θ* không phải tham số đặt tay: simulator quét θ rồi chọn argmax N(π<sub>θ</sub>)</h2><span className="hint">spec §0 (3), D2; T-31</span></div>
+      <div className="card-head"><h2>θ* không phải tham số đặt tay: simulator quét θ rồi chọn argmax N(π<sub>θ</sub>)</h2></div>
       <div className="grid cols-3">
         <div className="note"><b>Một ngưỡng θ cho cả hệ:</b> ŝ của mỗi ô mỗi slot ${defaults.config.time.slot_min} phút khác nhau, nên cùng θ cho ra bản đồ tắt/bật khác nhau theo giờ và theo vùng. Không đặt θ riêng cho từng (ô, slot).</div>
         <div className="note"><b>Cách tìm θ*:</b> chạy π<sub>θ</sub> với mọi θ trong lưới, cùng B (một pilot), κ auto riêng cho từng θ, cùng seed; θ* = θ có N trung bình cao nhất. Vì đường thường phẳng quanh đỉnh, báo <b>tập θ*</b>: các θ không khác biệt thống kê với θ tốt nhất (so sánh ghép cặp theo seed, Bonferroni).</div>
-        <div className="note"><b>Trang này chạy đúng việc đó</b> rồi vẽ đường N(θ) lớn dần theo từng seed xong. Kết quả cũng ghi <code>results/theta_sweep.parquet</code> như lệnh <code>sweep_theta</code>, nên xuất hiện ở trang Kết quả. Có thể đánh dấu θ̂ ước lượng từ dữ liệu quan sát (S9, T-45: θ̂_B = 2,3 với <code>ring1</code>, 1,6 với <code>city</code> trên W0; 2,15 / 2,1 trên W1) để so với θ*.</div>
+        <div className="note"><b>Trang này chạy đúng việc đó</b> rồi vẽ đường N(θ) lớn dần theo từng seed xong. Kết quả cũng ghi <code>results/theta_sweep.parquet</code> như lệnh <code>sweep_theta</code>, nên xuất hiện ở trang Kết quả. Có thể đánh dấu θ̂ ước lượng từ dữ liệu quan sát (θ̂_B = 2,3 với <code>ring1</code>, 1,6 với <code>city</code> trên W0; 2,15 / 2,1 trên W1) để so với θ*.</div>
       </div>
     </div>
     <div className="grid cols-2 sweep-layout">
@@ -85,7 +85,7 @@ export function SweepPage({ defaults, runs, run, onStarted, onSelect }) {
             <${Field} label="Tên"><input type="text" value=${form.name} onChange=${set("name")} placeholder="ví dụ: quét θ ring1 DR/đ" /><//>
             <${Field} label="Lưới θ" hint="phân cách bằng dấu phẩy"><input type="text" value=${form.grid} onChange=${set("grid")} /><//>
             <div className="form-grid">
-              <${Field} label="Seed mỗi θ" hint="báo cáo: 10; B7b: 30"><input type="number" min="1" max="100" value=${form.n_seeds} onChange=${num("n_seeds")} /><//>
+              <${Field} label="Seed mỗi θ" hint="mặc định: 10; tham chiếu: 30"><input type="number" min="1" max="100" value=${form.n_seeds} onChange=${num("n_seeds")} /><//>
               <${Field} label="Tiến trình song song" hint=${`máy có ${defaults.cpu_count} lõi`}><input type="number" min="1" max="64" value=${form.n_procs} onChange=${num("n_procs")} /><//>
               <${Field} label="Thế giới" hint="lớp config"><select value=${form.world} onChange=${(e) => { const w = e.target.value; setForm((f) => ({ ...f, world: w, fleet: w === "w1" ? 1278 : w === "tiny" ? 10 : 1150, radius: w === "tiny" ? 1 : 4 })); }}>${WORLDS.map(([k, label]) => html`<option key=${k} value=${k}>${label}</option>`)}</select><//>
               <${Field} label="Phạm vi đo ŝ"><select value=${form.scope} onChange=${set("scope")}><option value="cell">cell</option><option value="ring1">ring1 (ô + 6 ô kề)</option><option value="city">city (cả thành phố)</option></select><//>
@@ -169,7 +169,7 @@ export function SweepResult({ run, data, marksText = "", onMarks = null }) {
     <div className="card">
       <div className="card-head"><h2>Đường N(π<sub>θ</sub>) theo θ</h2><span className="hint">dải = ± 1 SE theo seed · vùng xanh = tập θ* · trục θ cách đều theo lưới</span></div>
       <${LineChart} x=${x} xLabels=${xLabels} height=${300} series=${[nSeries]} marks=${argMark} vlines=${vlines} bands=${bands} yFormat=${(v) => fmtInt(v)} yLabel="chuyến / cửa sổ" legend=${false} />
-      ${onMarks ? html`<div className="row small" style=${{ marginTop: 6 }}><span className="ink2">Đánh dấu θ̂ ước lượng từ dữ liệu quan sát (S9, T-45: θ̂_B ring1 2,3 / city 1,6 trên W0; 2,15 / 2,1 trên W1) để so với θ* của simulator:</span><input type="text" value=${marksText} onChange=${(e) => onMarks(e.target.value)} style=${{ width: 160 }} placeholder="2.3, 1.6" /></div>` : null}
+      ${onMarks ? html`<div className="row small" style=${{ marginTop: 6 }}><span className="ink2">Đánh dấu θ̂ ước lượng từ dữ liệu quan sát (θ̂_B ring1 2,3 / city 1,6 trên W0; 2,15 / 2,1 trên W1) để so với θ* của simulator:</span><input type="text" value=${marksText} onChange=${(e) => onMarks(e.target.value)} style=${{ width: 160 }} placeholder="2.3, 1.6" /></div>` : null}
     </div>
     <div className="grid cols-2">
       <div className="card">
@@ -185,7 +185,7 @@ export function SweepResult({ run, data, marksText = "", onMarks = null }) {
       </div>
     </div>
     <div className="card">
-      <div className="card-head"><h2>Bảng theo θ</h2><span className="hint">κ auto riêng từng θ (H-21)</span></div>
+      <div className="card-head"><h2>Bảng theo θ</h2><span className="hint">κ auto riêng từng θ</span></div>
       <${Table} rows=${per.map((p) => ({ ...p, in_set: star ? (star.rows.find((r) => r.theta === p.theta) || {}).in_set : null, kappa_n: (data.kappas || []).find((k) => k.theta === p.theta) }))} columns=${[
         { key: "theta", label: "θ", num: true }, { key: "n", label: "seed xong", num: true },
         { key: "N_mean", label: "N ± SE", num: true, fmt: (v, r) => (v == null ? "–" : `${fmtNum(v, 1)}${r.N_se != null ? ` ± ${fmtNum(r.N_se, 1)}` : ""}`) },

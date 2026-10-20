@@ -1,8 +1,8 @@
-# config/sweep_reference.yaml: lớp phủ lên default.yaml cho sweep θ tham chiếu (T4.3, decisions T-31).
+# config/sweep_reference.yaml: lớp phủ lên default.yaml cho sweep θ tham chiếu.
 # Lưới θ mặc định (0–2) dừng giữa đoạn phẳng của N(π_θ); lưới này kéo dài tới 30 để thấy đủ ba đoạn
-# tăng, phẳng, giảm. Không sửa default.yaml, nên config_hash gốc (cb27f5348011) và các bộ B7a không đổi.
+# tăng, phẳng, giảm.
 # Cách dùng:
-#   python -m sim run --mode sweep_theta --config config/default.yaml --config config/sweep_reference.yaml --out runs/b7b/sweep_theta_ref
+#   python -m sim run --mode sweep_theta --config config/default.yaml --config config/sweep_reference.yaml --set sweep.n_seeds=30 --out runs/sweep_theta_ref
 
 sweep:
   theta_grid: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.25, 1.5, 2.0, 3.0, 5.0, 10.0, 30.0]

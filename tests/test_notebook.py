@@ -1,4 +1,4 @@
-"""Task H6.1: helpers of the result notebooks (analysis/notebook.py, analysis.plots.save_figure; decisions H-27)."""
+"""Helpers of the result notebooks (analysis/notebook.py, analysis.plots.save_figure)."""
 
 import os
 import sys

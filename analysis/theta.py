@@ -1,11 +1,11 @@
-"""Estimated threshold theta-hat from experiment data, without and with the budget (task H5.3, decisions H-25).
+"""Estimated threshold theta-hat from experiment data, without and with the budget.
 
 Inputs:
 
 - the voucher effect ``tau(h)`` on the completion rate of a session, and the voucher dollars paid
   per offered session ``cost(h)``, by hour of day, from the **global** switchback
   (``switchback_all_28d``). Only a global design shows the harm in the tight hours: in a cluster
-  design an "on" cluster borrows idle drivers from its "off" neighbours (H5.3 log);
+  design an "on" cluster borrows idle drivers from its "off" neighbours;
 - the sessions a day of the policy would see, with the hour and the value of the indicator
   (``analysis.tension`` on ``all_off`` runs), e.g. ``ring1`` or ``cell_persistence``.
 
@@ -22,7 +22,7 @@ on the indicator; the indicator only decides how much of each hour is cut). Per 
 
 Both are argmax over a grid; the interval comes from the unit bootstrap of ``tau`` and ``cost``.
 
-The harm itself is shown two ways (notebook 04, task H6.2): :func:`hour_table` (``tau(h)`` with its
+The harm itself is shown two ways (notebook 04): :func:`hour_table` (``tau(h)`` with its
 interval, any switchback) and :func:`on_off_by_hour` (voucher for everyone minus for no one, no budget,
 paired by seed: completed, requests, riders who gave up, quoted ETA).
 """

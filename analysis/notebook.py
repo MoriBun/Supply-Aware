@@ -1,4 +1,4 @@
-"""Helpers for the result notebooks in ``notebooks/`` (task H6.1, decisions H-27).
+"""Helpers for the result notebooks in ``notebooks/``.
 
 A notebook only calls functions of ``analysis/``; this module gives every notebook the
 same first cell::
@@ -13,7 +13,7 @@ same first cell::
 it moves to the repository root, so ``runs/...`` and ``config/...`` resolve as on the
 command line. ``require_runs`` fails at once, naming every missing input, instead of
 in the middle of the notebook; ``runs/`` is never committed, each input is rebuilt
-with the command of ``docs/datasets.md``.
+with its command in README.md, section "Tái lập kết quả".
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DATASETS_DOC = "docs/datasets.md"
+DATASETS_DOC = 'README.md, section "Tái lập kết quả"'
 
 
 def setup():
@@ -40,11 +40,11 @@ def setup():
 def require_runs(*paths: str | Path) -> list[Path]:
     """Absolute paths of the data a notebook needs (run directories or files, relative to the repository root).
 
-    Raises ``FileNotFoundError`` listing every missing one, with the pointer to ``docs/datasets.md``.
+    Raises ``FileNotFoundError`` listing every missing one, with the pointer :data:`DATASETS_DOC`.
     """
     resolved = [Path(p) if Path(p).is_absolute() else ROOT / p for p in paths]
     missing = [str(p) for p, r in zip(paths, resolved) if not r.exists()]
     if missing:
         raise FileNotFoundError(f"missing data: {', '.join(missing)}. "
-                                f"Rebuild each one with its command in {DATASETS_DOC} (runs/ is not committed).")
+                                f"Rebuild each one with its command in {DATASETS_DOC}; runs/ is not committed.")
     return resolved

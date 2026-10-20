@@ -1,17 +1,15 @@
 """M11 MarketMonitor: per-(cell, slot) I, E, O, W, slack, utilization; publishes snapshots after each slot.
 
-Spec: docs/spec.md §4.11; decisions T-09, T-10, T-15. Milestone: P1 (task T1.2).
-
 ``accumulate`` runs every tick from the live counters, ``publish`` closes a slot
 (record fields = docs/schema.md) and ``view`` hands the policy of slot k the
 snapshots of slots < k. The store is a queue: ``publish`` must be called at the
 end of slot k with slot k-1 already published, and ``view(k)`` refuses to exist
-while slot k is published or slot k-1 is missing (hard rule 2, spec §4.11).
+while slot k is published or slot k-1 is missing (hard rule 2).
 
-Event counters (decisions T-15) are recorded through the ``on_*`` methods at the
+Event counters are recorded through the ``on_*`` methods at the
 time of the event and in the pickup cell; several events in the same cell and
 tick add up (``np.add.at``). ``n_sessions`` is the exception: ``demand.spawn``
-adds it from its per-cell Poisson counts (decisions H-05 d).
+adds it from its per-cell Poisson counts.
 """
 
 from __future__ import annotations
@@ -43,7 +41,7 @@ class MarketMonitor:
         acc.sum_waiting += cells.waiting
         acc.n_ticks += 1
 
-    # --- event counters (decisions T-15): by event time, in the pickup cell -----
+    # --- event counters: by event time, in the pickup cell ----------------------
 
     @staticmethod
     def on_offers(acc: SlotCounters, pu_cell) -> None:
@@ -99,13 +97,13 @@ class MarketMonitor:
             E = (acc.sum_enroute / ticks).astype(np.float32)
             O = (acc.sum_ontrip / ticks).astype(np.float32)
             W = (acc.sum_waiting / ticks).astype(np.float32)
-            # slack = I/E (T-10). With E = 0: +inf if some driver idles there, 0 if the cell has no idle
-            # driver at all, i.e. no supply to offer (spec §4.11, decisions H-14).
+            # slack = I/E. With E = 0: +inf if some driver idles there, 0 if the cell has no idle
+            # driver at all, i.e. no supply to offer.
             slack = np.where(E > 0, I.astype(np.float64) / E, np.where(I > 0, np.inf, 0.0))
             slack = np.where(np.isnan(I), NAN, slack).astype(np.float64)
             busy = E.astype(np.float64) + O
             denom = I.astype(np.float64) + busy
-            utilization = np.where(denom > 0, busy / denom, NAN).astype(np.float32)  # T-09: repositioning excluded
+            utilization = np.where(denom > 0, busy / denom, NAN).astype(np.float32)  # repositioning excluded
             eta = np.where(acc.n_pickup_eta > 0, acc.sum_pickup_eta_min / acc.n_pickup_eta, NAN).astype(np.float32)
         lag_slot = self._lag("slack", slot, 1)
         lag_day = self._lag("slack", slot, self.clock.slots_per_day)
@@ -152,7 +150,7 @@ class MarketMonitor:
     def view(self, current_slot: int) -> SnapshotView:
         """View for decisions taken in ``current_slot``: only earlier slots are readable.
 
-        Queue discipline (spec §4.11): slot ``current_slot - 1`` must be the last one
+        Queue discipline: slot ``current_slot - 1`` must be the last one
         published, and nothing readable may have been published after the slot started.
         """
         last = self.store.last_published_slot

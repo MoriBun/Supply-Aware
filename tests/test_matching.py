@@ -1,4 +1,4 @@
-"""docs/tests.md, M5 Matching (spec §4.5): FIFO, same cell first, nearest ring, pickup limit, tie-breaks."""
+"""Matching (sim/matching.py): FIFO, same cell first, nearest ring, pickup limit, tie-breaks."""
 
 import numpy as np
 import pytest
@@ -42,7 +42,7 @@ def status(ctx):
 
 @pytest.fixture
 def ctx():
-    # M5 unit tests on the pre-H7.1 grid (37 cells, 0.75 km), where every cell reaches every cell within
+    # Unit tests on the old grid (37 cells, 0.75 km), where every cell reaches every cell within
     # max_pickup_eta_min; the Hanoi grid of default.yaml is covered by the integration tests.
     return make_context(load_config(DEFAULT, ["space.grid_radius=3", "space.edge_km=0.75"]))
 
@@ -52,7 +52,7 @@ def space(ctx):
     return ctx.world.space
 
 
-# --- docs/tests.md M5 ------------------------------------------------------------
+# --- FIFO, nearest ring, pickup limit, tie-breaks --------------------------------
 
 
 def test_fifo_older_order_gets_the_only_driver(ctx):
@@ -181,7 +181,7 @@ def test_match_writes_order_driver_and_counters(ctx, space):
 
 
 def test_trip_time_uses_the_hour_of_pickup(ctx, space):
-    # Matched at 16:59 with a pickup after 17:00: the trip is timed with hour 17 speeds (spec §4.6).
+    # Matched at 16:59 with a pickup after 17:00: the trip is timed with hour 17 speeds.
     t = 17 * 3600.0 - 60.0
     source = int(space.rings[3][-1][0])
     order = waiting_order(ctx, 3, do_cell=20, request_time_s=t)
@@ -194,7 +194,7 @@ def test_trip_time_uses_the_hour_of_pickup(ctx, space):
 
 
 def test_match_agrees_with_the_quoted_eta(ctx, space):
-    # Same rule as the quote of step 5 (decisions H-04).
+    # Same rule as the quote of step 5.
     idle_driver(ctx, 0, int(space.rings[11][1][2]))
     idle_driver(ctx, 1, int(space.rings[11][2][0]))
     quoted, no_supply = space.quote_eta(11, 18, ctx.cells.idle)

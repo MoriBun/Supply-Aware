@@ -1,4 +1,4 @@
-"""Task T10.10: analysis/animation.py (mentor guide §6, §8).
+"""analysis/animation.py: animation of a policy change on the hex grid.
 
 Small synthetic tables for the 61-cell Hanoi grid (shapes, pivots, totals, captions) and one
 real pair of tiny runs through the whole pipeline: totals match ``policy_results`` and a GIF
@@ -88,7 +88,7 @@ def test_pair_totals_match_policy_results_and_gif_is_written(tiny_pair, tmp_path
     pair = animation.load_pairs([tiny_pair["all_off"]], [tiny_pair["all_on"]])
     assert pair.n_cells == 7 and pair.seeds == [pair.old[0].seed]
     assert pair.d_req.shape == pair.d_done.shape == (pair.n_slots, 7)
-    totals = animation.check_totals(pair)                                  # guide §8: sums equal N(new) - N(old)
+    totals = animation.check_totals(pair)                                  # sums equal N(new) - N(old)
     assert len(totals) == 1
     row = totals.iloc[0]
     assert row["delta_N"] == row["delta_from_orders"] == pair.new[0].n_completed - pair.old[0].n_completed

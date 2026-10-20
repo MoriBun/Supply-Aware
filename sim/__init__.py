@@ -1,1 +1,1 @@
-"""Ride-hailing simulator for the Supply-Aware Promotion Impact Framework (docs/spec.md)."""
+"""Ride-hailing simulator for the Supply-Aware Promotion Impact Framework."""

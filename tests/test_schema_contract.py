@@ -1,4 +1,4 @@
-"""Column names in code match docs/schema.md (docs/phan_cong.md, B0: "tên cột khớp schema.md").
+"""Column names in code match docs/schema.md.
 
 The tables in docs/schema.md are parsed, so editing the schema without the
 buffers (or the other way round) fails here.

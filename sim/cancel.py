@@ -1,7 +1,5 @@
 """M7 Cancellation: abandon after max_wait, en-route cancellation by cumulative hazard.
 
-Spec: docs/spec.md §4.7. Milestone: P2 (task H2.2).
-
 Contract: both steps move orders to a terminal status, release the driver
 (en-route case), call ``ctx.ledger.release_committed`` when the order held a
 voucher, and update ``ctx.cells`` / ``ctx.slot_counters``.
@@ -10,7 +8,7 @@ Both rules are deterministic given the session: ``max_wait_min`` belongs to the
 rider and ``e_cancel`` was pre-drawn with the session, so the same session has
 the same patience and the same cancellation threshold under every policy (CRN).
 
-With ``cancel.exact_time`` (decisions H-38, KN 2.2) the rider cancels at the exact
+With ``cancel.exact_time`` the rider cancels at the exact
 crossing time ``t_cancel = matched_time + 60 * e_cancel / h``: step 1
 (``trips.advance``) cancels instead of picking up when ``t_cancel < pickup_at``
 (the last minute before pickup used to be skipped), and both steps place the
@@ -30,7 +28,7 @@ _WAITING = int(OrderStatus.WAITING)
 
 
 def cancel_hazard_per_min(cfg: Config, pickup_eta_min) -> np.ndarray:
-    """``h = base_per_min + slope_per_min2 * max(0, pickup_eta_min - eta_free_min)`` (spec §4.7)."""
+    """``h = base_per_min + slope_per_min2 * max(0, pickup_eta_min - eta_free_min)``."""
     c = cfg.cancel
     eta = np.asarray(pickup_eta_min, dtype=np.float64)
     return c.base_per_min + c.slope_per_min2 * np.maximum(0.0, eta - c.eta_free_min)
@@ -54,7 +52,7 @@ def expire_waiting(ctx: SimContext, t: float) -> None:
 
 
 def cancel_time_s(ctx: SimContext, o_idx: np.ndarray) -> np.ndarray:
-    """``t_cancel = matched_time + 60 * e_cancel / h`` per order (inf when ``h = 0``; decisions H-38)."""
+    """``t_cancel = matched_time + 60 * e_cancel / h`` per order (inf when ``h = 0``)."""
     orders = ctx.orders
     h = cancel_hazard_per_min(ctx.cfg, orders.pickup_eta_min[o_idx].astype(np.float64))
     e = ctx.sessions.e_cancel[orders.session_idx[o_idx]].astype(np.float64)
@@ -87,7 +85,7 @@ def cancel_drivers(ctx: SimContext, d_idx: np.ndarray, t_event: np.ndarray) -> N
     """Cancel the orders of en-route drivers ``d_idx`` at times ``t_event`` (used by steps 1 and 8).
 
     The driver becomes idle where they stand at ``t_event``: still at the origin cell before half
-    the pickup ETA, at the rider's cell after (spec §4.7), with ``idle_since = t_event``.
+    the pickup ETA, at the rider's cell after, with ``idle_since = t_event``.
     """
     if len(d_idx) == 0:
         return

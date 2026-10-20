@@ -1,4 +1,4 @@
-"""Tasks T6.1–T6.3: the figures of notebooks 01–03 (analysis/figures.py) draw from small tables."""
+"""The figures of notebooks 01–03 (analysis/figures.py) draw from small tables."""
 
 import numpy as np
 import pandas as pd

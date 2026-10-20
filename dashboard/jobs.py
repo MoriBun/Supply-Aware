@@ -257,7 +257,7 @@ class RunManager:
         run.scope = cfg.policy.threshold.scope if is_threshold else None
         run.score_fn = cfg.policy.threshold.score_fn if is_threshold else None
 
-        # 1. Budget B (spec §4.3): explicit, or the all_on pilot of runner.calibrate_budget.
+        # 1. Budget B: explicit, or the all_on pilot of runner.calibrate_budget.
         # M10 assigns treatment without a budget constraint so its propensity is
         # the configured experiment probability.  This mirrors sim.runner and
         # keeps the dashboard form's “Thí nghiệm không áp ngân sách” statement true.
@@ -279,7 +279,7 @@ class RunManager:
             run.note("Không áp ngân sách (budget.enforce = false)")
         run.budget_vnd = budget
 
-        # 2. kappa of the rider tier (spec §6, H-21).
+        # 2. kappa of the rider tier.
         kappa: float | None = None
         ka: KappaAuto | None = None
         if is_threshold:
@@ -291,9 +291,9 @@ class RunManager:
                 run.note(f"κ = {kappa:g} (config)")
             elif budget is None:
                 kappa = -math.inf
-                run.note("κ = −∞ (không có ngân sách thì không hạn chế tầng rider, T-23)")
+                run.note("κ = −∞ (không có ngân sách thì không hạn chế tầng rider)")
             else:
-                run.set_stage("kappa", "κ auto: pilot threshold không ngân sách, lặp đến điểm bất động (H-21)")
+                run.set_stage("kappa", "κ auto: pilot threshold không ngân sách, lặp đến điểm bất động")
                 t0 = time.perf_counter()
                 ka = kappa_auto(cfg, [run.theta], budget)[0]
                 kappa = ka.kappa
@@ -377,7 +377,7 @@ class RunManager:
         run.note("Không áp ngân sách" if budget is None else f"B = {budget:,.0f} đ/kỳ cho mọi θ")
 
         run.set_stage("kappa", f"κ auto cho {len(grid)} θ: pilot threshold không ngân sách, lặp đến điểm bất động, "
-                               f"{n_procs} tiến trình (H-21)")
+                               f"{n_procs} tiến trình")
         t0 = time.perf_counter()
         kappas = resolve_kappas(base, grid, budget) or [KappaAuto(kappa=-math.inf) for _ in grid]
         run.runtime["kappa_pilots_s"] = time.perf_counter() - t0
@@ -472,7 +472,7 @@ class RunManager:
             try:
                 spec = spec_cls(**{k: (tuple(v) if isinstance(v, list) else v) for k, v in meta.get("spec", {}).items()})
             except TypeError:
-                continue            # saved before a spec field was renamed (e.g. USD -> VND, decisions H-33): skip
+                continue            # saved before a spec field was renamed (e.g. USD -> VND): skip
             run = DashRun(id=run_key, name=meta.get("name", run_key), spec=spec, kind=kind,
                           created_at=meta.get("created_at", ""), out_dir=meta_path.parents[1], status="done",
                           progress=1.0)

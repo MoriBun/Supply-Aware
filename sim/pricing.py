@@ -1,8 +1,6 @@
 """M3 PricingAndPromotion: base fare, voucher value, and the voucher layer of step 5.
 
-Spec: docs/spec.md §4.3, §6. Milestone: P2 (task T2.1).
-
-Decisions L12: step 5 has one voucher layer for every policy. ``start_slot``
+Step 5 has one voucher layer for every policy. ``start_slot``
 asks the policy for its cell decision when the slot changes; ``quote`` prices
 the sessions of the tick (fare from ``T[pu, do, h]``, quoted ETA from the M5
 search rule without holding a driver), builds the observed ``SessionBatch``,
@@ -25,13 +23,13 @@ from sim.shocks import travel_hour
 
 
 def base_fare_vnd(cfg: Config, trip_min, trip_km) -> np.ndarray:
-    """Quoted fare ``p_s`` (spec §4.3, decisions H-42), vectorized, float32.
+    """Quoted fare ``p_s``, vectorized, float32.
 
     ``p_s = open_fare_vnd + per_km_vnd * max(0, km - open_km) + per_min_vnd * T_after + platform_fee_vnd``
     with ``T_after = T * max(0, km - open_km) / km`` the minutes driven after the opening ``open_km``
     (GrabCar Hanoi: 28.473đ for 2 km, 9.818đ/km and 442đ/min after, 10.000đ platform fee). With
     ``open_km = per_km_vnd = platform_fee_vnd = 0`` this is ``open_fare_vnd + per_min_vnd * T``, the
-    tariff before S7.
+    earlier tariff.
     """
     p = cfg.pricing
     trip_min = np.asarray(trip_min, dtype=np.float64)
@@ -63,14 +61,14 @@ class VoucherOutcome:
     promo_on_cell: np.ndarray      # bool [n]
     cell_propensity: np.ndarray    # float32 [n]
     slack_hat: np.ndarray          # float32 [n]
-    lag_slot_same_block: np.ndarray  # bool [n]: slot k-1 in the same switchback block, False in slot 0 (H-40)
+    lag_slot_same_block: np.ndarray  # bool [n]: slot k-1 in the same switchback block, False in slot 0
 
     def __len__(self) -> int:
         return len(self.arm)
 
 
 class VoucherLayer:
-    """The single seam between the engine and the policy (decisions L12)."""
+    """The single seam between the engine and the policy."""
 
     def __init__(self, cfg: Config, policy: Policy, ledger: BudgetLedger, n_cells: int) -> None:
         self.cfg = cfg
@@ -88,7 +86,7 @@ class VoucherLayer:
         return dec
 
     def decide(self, batch: SessionBatch) -> VoucherOutcome:
-        """Policy offers, then budget in ``session_id`` order (spec §4.3)."""
+        """Policy offers, then budget in ``session_id`` order."""
         if self.cell_dec is None:
             raise RuntimeError("start_slot must be called before decide")
         n = len(batch)
@@ -133,7 +131,7 @@ class VoucherLayer:
         rows = slice(start, stop)
         pu, do, hour = s.pu_cell[rows], s.do_cell[rows], s.hour[rows]
 
-        t_hour = travel_hour(ctx, t, hour)                   # + 24 while it rains (H7.4)
+        t_hour = travel_hour(ctx, t, hour)                   # + 24 while it rains
         trip_min = space.T[pu, do, t_hour]
         trip_km = trip_min.astype(np.float64) / 60.0 * space.speed_kmh[t_hour]   # road km, as orders.trip_km
         fare = base_fare_vnd(self.cfg, trip_min, trip_km)

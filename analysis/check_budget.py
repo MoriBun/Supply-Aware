@@ -4,8 +4,8 @@ Reads what ``evaluate`` / ``sweep_theta`` / ``generate`` wrote with ``--log-leve
 (observed/ tables at the root for one run, or under ``runs/<run_id>/`` for several)
 and prints, per run: B, spend per budget period against its limit (warm-up gets
 ``B * warmup / period``), how many sessions were offered or blocked, the first hour
-the budget ran out, and the ledger fate of every voucher by order outcome
-(docs/spec.md §4.3, decisions T-03). Exit code 1 when a limit is exceeded.
+the budget ran out, and the ledger fate of every voucher by order outcome.
+Exit code 1 when a limit is exceeded.
 """
 
 from __future__ import annotations
@@ -69,7 +69,7 @@ def audit_run(run_id: str, folder: Path, meta: pd.DataFrame) -> bool:
     if len(blocked):
         clean = bool((blocked["arm"] == 0).all() and (blocked["voucher_value_vnd"] == 0).all())
         # A blocked session is one the policy wanted to treat: its cell is on, or it is in the
-        # explore slice of the legacy policy, which offers whatever the cell state (spec §6).
+        # explore slice of the legacy policy, which offers whatever the cell state.
         off_cell = blocked[~blocked["promo_on_cell"]]
         explore_only = bool((off_cell["assign_mechanism"] == "explore").all())
         ok &= clean and explore_only

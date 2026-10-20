@@ -1,7 +1,6 @@
 """Natural shocks of world W1: day-level demand, events at fixed venues, rain, driver attendance, shift jitter.
 
-Spec: docs/spec.md §4.14; decisions H-30, H-39; values and sources in
-``docs/de_xuat_tham_so_ha_noi.md`` B5. Task H7.4.
+Values and their sources: ``config/default.yaml``, section ``shocks``.
 
 The whole schedule is drawn before the run, from the SHOCK stream (seeded by ``run_seed``, keyed by
 day and, for per-driver draws, ``driver_id``) and, for the venue cells, from the WORLD stream
@@ -127,7 +126,7 @@ def venue_cells(cfg: Config, rng: Rng, n_cells: int) -> np.ndarray:
 
 
 def build_schedule(cfg: Config, world, rng: Rng, clock) -> ShockSchedule:
-    """Draw the shocks of every day of the run (decisions H-30, H-39)."""
+    """Draw the shocks of every day of the run."""
     sh = cfg.shocks
     n_days, n_cells, n_drivers = n_run_days(clock), world.n_cells, cfg.supply.fleet_size
 

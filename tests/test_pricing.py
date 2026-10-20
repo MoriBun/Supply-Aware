@@ -1,4 +1,4 @@
-"""M3: base fare, voucher value, BudgetLedger (spec §4.3, decisions T-03) and the voucher layer (L12)."""
+"""Pricing: base fare, voucher value, BudgetLedger and the voucher layer."""
 
 import numpy as np
 import pytest
@@ -15,19 +15,19 @@ from sim.state import Clock, Mechanism
 from tests.fakes import make_batch, make_context, make_ledger, stub_world
 
 
-# --- prices (docs/tests.md M3: p_s = a_f + b_f*T; v_s = 0,2*p_s) ---------------------
+# --- prices --------------------------------------------------------------------------
 
 
 def test_base_fare_formula(default_yaml):
-    # GrabCar Hanoi (H7.8, decisions H-42): 28.473đ for the first 2 km, 9.818đ/km and 442đ/min after,
+    # GrabCar Hanoi: 28.473đ for the first 2 km, 9.818đ/km and 442đ/min after,
     # 10.000đ platform fee; minutes after 2 km pro rata of the distance.
     cfg = load_config(default_yaml)
     fare = base_fare_vnd(cfg, [20.0, 5.0, 4.0], [6.0, 1.5, 2.0])
     assert fare.dtype == np.float32
-    np.testing.assert_allclose(fare, [28473 + 4 * 9818 + 442 * 20 * 4 / 6 + 10000,     # 83.638đ (ĐX B4)
+    np.testing.assert_allclose(fare, [28473 + 4 * 9818 + 442 * 20 * 4 / 6 + 10000,     # 83.638đ
                                       28473 + 10000, 28473 + 10000], rtol=1e-6)        # within the opening 2 km
     assert float(fare[0]) == pytest.approx(83638.33, abs=0.01)
-    # The pre-S7 tariff (B9 values in the new unit): open + per_min x T, km-independent.
+    # The old tariff (USD values in đồng, 1 USD = 100 đ): open + per_min x T, km-independent.
     old = load_config(default_yaml, ["pricing.open_fare_vnd=300", "pricing.open_km=0", "pricing.per_km_vnd=0",
                                      "pricing.per_min_vnd=170", "pricing.platform_fee_vnd=0"])
     np.testing.assert_allclose(base_fare_vnd(old, [0.0, 10.0], [1.5, 4.0]), [300.0, 300.0 + 1700.0], rtol=1e-6)
@@ -39,7 +39,7 @@ def test_voucher_dong_pct_and_cap(default_yaml):
     assert voucher_dong(cfg, [1700.0]).dtype == np.int64
     capped = load_config(default_yaml, ["voucher.pct_of_fare=0.2", "voucher.max_vnd=200.0"])
     np.testing.assert_array_equal(voucher_dong(capped, [1700.0, 500.0]), [200, 100])
-    hanoi = load_config(default_yaml)                                  # 25%, at most 20.000đ (H7.8)
+    hanoi = load_config(default_yaml)                                  # 25%, at most 20.000đ
     np.testing.assert_array_equal(voucher_dong(hanoi, [40000.0, 80000.0, 83638.33]), [10000, 20000, 20000])
 
 
@@ -48,7 +48,7 @@ def test_money_helpers():
     assert vnd_to_dong(340.0) == 340 and dong_to_vnd(340) == 340.0
 
 
-# --- ledger periods (decisions T-03) ---------------------------------------------------
+# --- ledger periods --------------------------------------------------------------------
 
 
 def test_period_anchored_at_window_start():
@@ -156,7 +156,7 @@ def test_invariant_detects_corruption():
         led.check_invariant()
 
 
-# --- periods d, d+1 and cool-down (docs/tests.md M3; decisions T-03) ---------------------------
+# --- periods d, d+1 and cool-down --------------------------------------------------------------
 
 
 def test_entry_stays_in_opening_period_when_order_ends_later():
@@ -177,7 +177,7 @@ def test_entry_stays_in_opening_period_when_order_ends_later():
 
 
 def test_new_period_starts_with_full_budget():
-    # "Daily reset" under T-03: no reset at 00:00; the next period has its own counters and B.
+    # "Daily reset": no reset at 00:00; the next period has its own counters and B.
     led = make_ledger(budget_vnd=500.0, period_s=86400.0, n_periods=2)
     assert led.reserve(1, 3600.0, 500)                     # period 0 exhausted
     assert not led.reserve(2, 3600.0 + 86399.0, 1)
@@ -209,8 +209,8 @@ def test_ledger_built_from_clock(default_yaml, tiny_cfg):
 def test_invariant_under_random_session_lifecycles():
     # Independent tally: every transition path over warm-up + 2 periods, thousands of sessions.
     # After each operation the invariant holds, blocking is exact, and the ledger's totals equal
-    # what the shadow bookkeeping says (docs/tests.md M3 "bất biến ngân sách", ledger level;
-    # the 1-day engine run is S3).
+    # what the shadow bookkeeping says (budget invariant at the ledger level; the 1-day engine run
+    # is in tests/test_acceptance.py).
     gen = np.random.default_rng(20261001)
     led = make_ledger(budget_vnd=200000.0, period_s=86400.0, n_periods=2, warmup_s=3600.0)
     limits = {p: led.limit_dong(p) for p in (-1, 0, 1)}
@@ -263,7 +263,7 @@ def test_invariant_under_random_session_lifecycles():
     assert led.warmup_spent_vnd() == shadow[-1][0] / DONG_PER_VND
 
 
-# --- B from config (spec §4.3 "Tính B") ----------------------------------------------------------
+# --- B from config -------------------------------------------------------------------------------
 
 
 def test_resolve_budget_fixed_and_fraction(default_yaml):
@@ -278,7 +278,7 @@ def test_resolve_budget_fixed_and_fraction(default_yaml):
         resolve_budget_vnd(frac, [])
 
 
-# --- voucher layer (decisions L12) ----------------------------------------------------------
+# --- voucher layer --------------------------------------------------------------------------
 
 
 def _layer(cfg, on, ledger, n_cells=7):
@@ -328,7 +328,7 @@ def test_layer_rejects_wrong_slot_or_length(default_yaml):
         layer.start_slot(4, SnapshotView(SnapshotStore(7, 96), 4))   # policy built for 7 cells, layer for 5
 
 
-# --- step 5 on the real session buffer: quote (task T2.1, B3) --------------------------------
+# --- step 5 on the real session buffer: quote ------------------------------------------------
 
 
 def quote_ticks(cfg, ticks, *, on: bool, **ctx_kw):
@@ -366,7 +366,7 @@ def test_quote_writes_fare_eta_and_policy_columns_all_off(default_yaml, quoted_o
     t_min = space.T[pu, do, hour]
     np.testing.assert_array_equal(s.col("quoted_fare_vnd"),
                                   base_fare_vnd(cfg, t_min, t_min.astype(np.float64) / 60.0 * space.speed_kmh[hour]))
-    # Every driver is a stub (offline): no supply anywhere, quoted ETA = max_pickup_eta_min (spec §4.1).
+    # Every driver is a stub (offline): no supply anywhere, quoted ETA = max_pickup_eta_min.
     assert s.col("no_supply").all() and (s.col("quoted_eta_min") == cfg.matching.max_pickup_eta_min).all()
     assert (s.col("arm") == 0).all() and (s.col("voucher_dong") == 0).all() and (s.col("voucher_value_vnd") == 0).all()
     assert not s.col("budget_blocked").any() and ctx.ledger.n_entries == 0
@@ -417,7 +417,7 @@ def test_quote_applies_budget_in_session_id_order_and_marks_blocked(tiny_cfg):
     assert (s.col("voucher_dong")[blocked] == 0).all() and (s.col("voucher_dong")[granted] > 0).all()
     assert (s.col("promo_on_cell")).all()                           # blocked sessions were still in an on cell
     ids, want = s.col("session_id"), voucher_dong(tiny_cfg, s.col("quoted_fare_vnd"))
-    for start, stop in ranges:                                       # within a tick, in session_id order (spec §4.3, L12):
+    for start, stop in ranges:                                       # within a tick, in session_id order:
         g, b = granted[start:stop], blocked[start:stop]              # a session granted after a blocked one must have
         for j in np.flatnonzero(b):                                  # asked for less than the blocked one did
             later = g & (ids[start:stop] > ids[start:stop][j])
@@ -438,9 +438,9 @@ def test_quote_keeps_session_randomness_identical_across_policies(quoted_off, qu
 
 
 def test_engine_runs_with_real_demand_through_the_voucher_layer(tiny_cfg):
-    # B3: all_off through the layer grants no voucher anywhere; all_on reserves, commits and settles; both
-    # runs are deterministic and share their sessions (CRN). Since Integration 1 the core steps are real,
-    # so orders are matched and completed (before that they all stayed Waiting and were truncated).
+    # all_off through the layer grants no voucher anywhere; all_on reserves, commits and settles; both
+    # runs are deterministic and share their sessions (CRN). The core steps are real, so orders are
+    # matched and completed.
     world = stub_world(tiny_cfg)
     off = run(tiny_cfg, world, FixedPolicy(False, 7), Rng.from_config(tiny_cfg), enforce_budget=False, log_level="full")
     on = run(tiny_cfg, world, FixedPolicy(True, 7), Rng.from_config(tiny_cfg), enforce_budget=False, log_level="full")

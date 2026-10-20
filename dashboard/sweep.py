@@ -1,6 +1,6 @@
 """theta sweep launched from the dashboard: the jobs of ``sim.runner.sweep_theta``, run with live progress.
 
-The search for theta* is the experiment of spec §0 item 3 and D2: the threshold policy
+The search for theta* is a sweep experiment: the threshold policy
 is run for every theta of a grid, on the same seeds and under the same budget B, and
 theta* = argmax_theta N(pi_theta). This module builds exactly the jobs that
 :func:`sim.runner.sweep_theta` builds (B from the all_on pilot, kappa-auto per theta,
@@ -9,7 +9,7 @@ reported to the page while the sweep is going. The tables written are the ones o
 mode ``sweep_theta`` (docs/schema.md), so the sweep also shows up on the results page.
 
 The theta* *set* (which thetas are statistically as good as the best one, paired by
-seed) comes from :func:`analysis.metrics.theta_star_set` (decisions T-31), the same
+seed) comes from :func:`analysis.metrics.theta_star_set`, the same
 function the notebooks use.
 """
 

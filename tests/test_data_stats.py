@@ -1,5 +1,4 @@
-"""analysis/data_stats.py: descriptive table and figures of a history data set (guide
-``huong_dan_thong_ke_du_lieu.md`` §5).
+"""analysis/data_stats.py: descriptive table and figures of a history data set.
 
 Two tiny ``generate`` runs (7 cells, 2 days, legacy policy): W0 and W1 (``config/world_w1.yaml``,
 shocks on). ``hidden/`` is deleted right after generation, so every test also checks that the

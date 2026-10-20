@@ -1,4 +1,4 @@
-"""analysis/tension_curve.py (task H9.3): effect by pre-block tension, tension threshold, hour method on count tables."""
+"""analysis/tension_curve.py: effect by pre-block tension, tension threshold, hour method on count tables."""
 
 import dataclasses
 import json
@@ -87,7 +87,7 @@ def test_analyse_world_on_a_generated_city_switchback(city_switchback):
         assert len(hm["curves"]) == len(tc.THETA_GRID)
     assert all(isinstance(h, int) and 0 <= h < 24 for h in r["harmful_hours"])
     text = tc.summary_markdown(r, None, "tiny")
-    assert "H9.3" in text and "system_pre" in text
+    assert "tiny: " in text and "system_pre" in text
 
 
 def test_tension_distribution_and_cli(city_switchback, tmp_path):

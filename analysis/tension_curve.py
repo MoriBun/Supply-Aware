@@ -1,7 +1,7 @@
-"""Voucher effect by supply tension measured **before** each block, and the tension threshold (task H9.3).
+"""Voucher effect by supply tension measured **before** each block, and the tension threshold.
 
-Plan v3 §3.3 (Q8–10, mentor criterion 1): the S5 method estimated the effect of a voucher **by hour** and
-used tension only to decide which cells to cut first (decisions H-25, H-26). Here, from a city-wide
+The hour method (:mod:`analysis.theta`) estimates the effect of a voucher **by hour** and
+uses tension only to decide which cells to cut first. Here, from a city-wide
 switchback run (``experiment``, ``cluster_level = all``), blocks are grouped by the tension the city had in
 the last slot before the block (``system_pre``; per-session ``ring_pre`` and ``cell_pre`` as well), so the
 moderator is never moved by the voucher of the block it moderates. Outputs:
@@ -10,15 +10,14 @@ moderator is never moved by the voucher of the block it moderates. Outputs:
   (:func:`analysis.estimate.effect_by_bin`);
 - the tension threshold ``theta_hat_tension``: zero crossing of the isotonic fit
   (:func:`analysis.estimate.theta_hat`), with interval;
-- the S5 hour method for comparison (``theta_hat_A`` without and ``theta_hat_B`` with the budget,
+- the hour method for comparison (``theta_hat_A`` without and ``theta_hat_B`` with the budget,
   :mod:`analysis.theta`), computed here from a (hour, tension level) count table so it runs on 4.2 M
   sessions (same numbers as :func:`analysis.theta.theta_hat`, see ``tests/test_tension_curve.py``);
-- the harmful hours (``tau(h)`` upper interval < 0) for the hour-off rule of task H9.4;
+- the harmful hours (``tau(h)`` upper interval < 0) for the hour-off rule of :mod:`analysis.hour_rule`;
 - the distribution of the city tension without vouchers (``all_off``) and under policies (``all_on``,
-  ``legacy``): if a policy lowers tension, a threshold must be read on tension measured under the policy
-  (§3.3 last bullet; the "(B) cuts too much" check of H-26).
+  ``legacy``): if a policy lowers tension, a threshold must be read on tension measured under the policy.
 
-CLI (one world at a time, task H9.3)::
+CLI (one world at a time)::
 
     python -m analysis.tension_curve --switchback runs/s8/w0/switchback_call_28d --budget runs/s8/w0/calibrate_budget
         --all-off runs/s8/w0/all_off_5seeds_full --all-on runs/s8/w0/all_on_5seeds_full --legacy runs/s8/w0/legacy_28d
@@ -42,7 +41,7 @@ from analysis.estimate import ratio_slack
 from analysis.io import load_run
 
 MODERATORS = ("system_pre", "ring_pre", "cell_pre")
-THETA_GRID = np.round(np.arange(0.0, 10.0001, 0.05), 2)      # same range as the S5 sweeps (θ ≤ 10, H-26)
+THETA_GRID = np.round(np.arange(0.0, 10.0001, 0.05), 2)      # same range as the runs/s5 sweeps (θ ≤ 10)
 TENSION_EDGES = (0.0, 0.35, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0, float("inf"))   # fixed bins; 0.35 = WGC-like cut
 
 
@@ -72,7 +71,7 @@ def tension_thresholds(frame: pd.DataFrame, moderators: Sequence[str] = MODERATO
 
 
 # ---------------------------------------------------------------------------
-# Hour method of S5 on a count table (same numbers as analysis.theta, feasible on millions of rows)
+# Hour method on a count table (same numbers as analysis.theta, feasible on millions of rows)
 # ---------------------------------------------------------------------------
 
 
@@ -145,7 +144,7 @@ def _snapshot_dirs(d: Path) -> list[Path]:
 
 
 def city_tension_by_slot(run_dir: Path) -> pd.DataFrame:
-    """Per published slot: city slack = sum(idle_avg) / sum(enroute_avg) over cells (rule H-14), window slots only.
+    """Per published slot: city slack = sum(idle_avg) / sum(enroute_avg) over cells, window slots only.
 
     ``run_dir`` is a generate directory or one ``<mode dir>/runs/<run_id>`` of an evaluate run; the window and
     ``slot_min`` come from its ``run_metadata`` row (in the directory or in the mode directory above).
@@ -209,7 +208,7 @@ def analyse_world(switchback_dir: Path, *, budget_per_day: float, n_boot: int = 
 
 
 def summary_markdown(result: dict, distribution: pd.DataFrame | None, world: str) -> str:
-    lines = [f"## H9.3 — {world}: tác dụng voucher theo độ căng trước khối (switchback toàn thành phố)", ""]
+    lines = [f"## {world}: tác dụng voucher theo độ căng trước khối (switchback toàn thành phố)", ""]
     lines.append(f"{result['frame_rows']:,} session trong cửa sổ, {result['n_units']} khối, {result['n_days']:.0f} ngày.")
     lines.append("")
     lines.append("### Đường tác dụng theo độ căng (tỷ lệ hoàn thành on − off, CI 95% bootstrap theo khối)")
@@ -219,7 +218,7 @@ def summary_markdown(result: dict, distribution: pd.DataFrame | None, world: str
     for r in result["curves"].itertuples():
         lines.append(f"| {r.moderator} | {r.bin} | {r.n_off:,} | {r.n_on:,} | {r.effect:+.4f} | {r.ci_lo:+.4f} | {r.ci_hi:+.4f} |")
     lines.append("")
-    lines.append("### Ngưỡng theo độ căng (zero crossing, isotonic) so với ngưỡng theo giờ của S5")
+    lines.append("### Ngưỡng theo độ căng (zero crossing, isotonic) so với ngưỡng theo giờ")
     lines.append("")
     lines.append("| moderator | θ̂_tension [CI] | share_boot_zero | θ̂_A (giờ, không B) [CI] | θ̂_B (giờ, có B) [CI] |")
     lines.append("|---|---|---|---|---|")
@@ -246,7 +245,7 @@ def summary_markdown(result: dict, distribution: pd.DataFrame | None, world: str
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="H9.3: voucher effect by pre-block tension and the tension threshold")
+    ap = argparse.ArgumentParser(description="Voucher effect by pre-block tension and the tension threshold")
     ap.add_argument("--switchback", type=Path, required=True, help="city-wide switchback generate dir")
     ap.add_argument("--budget", type=Path, default=None, help="calibrate_budget dir (B per day)")
     ap.add_argument("--budget-per-day", type=float, default=None, help="B per day in đồng, instead of --budget")

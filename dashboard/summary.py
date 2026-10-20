@@ -73,7 +73,7 @@ def _money_block(o, mask: np.ndarray) -> dict:
 
 
 def revenue(result: RunResult) -> dict:
-    """Money of the completed trips whose request lies in the evaluation window (``observed/orders``, H-42):
+    """Money of the completed trips whose request lies in the evaluation window (``observed/orders``):
     gross fare → minus voucher = net fare the rider pays → minus driver pay = platform profit, whose window sum
     is exactly ``V_profit_vnd`` of ``RunResult``. ``by_arm`` (trips with / without a voucher) and ``by_hour``
     are descriptive: the arms are chosen by the policy, so their difference is not an uplift (see :func:`compare`)."""

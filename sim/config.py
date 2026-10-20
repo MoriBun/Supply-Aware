@@ -1,4 +1,4 @@
-"""Configuration loading (docs/spec.md §9).
+"""Configuration loading.
 
 YAML files are deep-merged in order (later files win), ``--set key.sub=value``
 overrides are applied on top, and the result is validated into nested frozen
@@ -377,22 +377,22 @@ def to_dict(cfg: Config) -> dict[str, Any]:
 
 
 def eval_window_min(cfg: Config) -> int:
-    """Length of the evaluation window in minutes (spec §4.0, decisions T-05).
+    """Length of the evaluation window in minutes.
 
     ``time.window_min`` if set, otherwise ``days_per_run * 1440``. Use this instead of
-    reading either key directly (decisions H-03).
+    reading either key directly.
     """
     t = cfg.time
     return t.window_min if t.window_min is not None else t.days_per_run * 1440
 
 
 def budget_period_min(cfg: Config) -> int:
-    """Length of one budget period in minutes: ``min(1440, window)`` (spec §4.3, decisions T-03)."""
+    """Length of one budget period in minutes: ``min(1440, window)``."""
     return min(1440, eval_window_min(cfg))
 
 
 def config_hash(cfg: Config) -> str:
-    """sha1 of the normalized config, first 12 hex chars (spec §9).
+    """sha1 of the normalized config, first 12 hex chars.
 
     Hashing the validated config (not the raw YAML) makes ``1`` and ``1.0`` in a
     float field produce the same hash.
@@ -573,11 +573,11 @@ def _check_ranges(cfg: Config) -> None:
         need((t.slot_min * 60) % t.tick_s == 0, "time.slot_min", "slot length must be a whole number of ticks")
     need(t.days_per_run >= 1, "time.days_per_run", f"must be >= 1, got {t.days_per_run}")
     if t.window_min is not None:
-        # Evaluation window must be a whole number of slots (decisions T-05).
+        # Evaluation window must be a whole number of slots.
         need(t.window_min > 0 and t.slot_min > 0 and t.window_min % t.slot_min == 0, "time.window_min",
              f"must be a positive multiple of time.slot_min ({t.slot_min}) or null, got {t.window_min}")
-        # Budget periods have length min(1440, window) (decisions T-03); a longer window that is
-        # not whole days would end in a short period that still gets a full B (decisions H-02).
+        # Budget periods have length min(1440, window); a longer window that is
+        # not whole days would end in a short period that still gets a full B.
         need(t.window_min <= 1440 or t.window_min % 1440 == 0, "time.window_min",
              f"must be <= 1440 or a multiple of 1440, got {t.window_min}")
     nonneg("time.warmup_min", t.warmup_min)
@@ -661,13 +661,13 @@ def _check_ranges(cfg: Config) -> None:
     positive("reposition.max_idle_min", cfg.reposition.max_idle_min)
 
     e = cfg.experiment
-    # [report, Bảng 3]: a switchback block is a whole number of slots.
+    # A switchback block is a whole number of slots.
     need(e.block_min > 0 and t.slot_min > 0 and e.block_min % t.slot_min == 0, "experiment.block_min",
          f"must be a positive multiple of time.slot_min ({t.slot_min}), got {e.block_min}")
     need(0 <= e.burnin_min < e.block_min, "experiment.burnin_min",
          f"need 0 <= burnin_min < block_min, got {e.burnin_min}")
-    # Blocks count from the start of the run (decisions T-15), so the evaluation window
-    # starts on a block boundary only if warm-up is whole blocks (decisions H-01).
+    # Blocks count from the start of the run, so the evaluation window
+    # starts on a block boundary only if warm-up is whole blocks.
     if e.block_min > 0:
         need(t.warmup_min % e.block_min == 0, "time.warmup_min",
              f"must be a multiple of experiment.block_min ({e.block_min}), got {t.warmup_min}")

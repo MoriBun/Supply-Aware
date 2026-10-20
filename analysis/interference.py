@@ -1,4 +1,4 @@
-"""Interference and hidden confounding, measured against simulator ground truth (task T5.3).
+"""Interference and hidden confounding, measured against simulator ground truth.
 
 ``python -m analysis.interference designs --gte runs/b7a/gte runs/b7a/rider_ab_28d runs/b7a/switchback_c1_28d ...``
 ``python -m analysis.interference confounding runs/s5/legacy_gu_0_28d runs/b7a/legacy_28d ...``
@@ -8,8 +8,8 @@ difference in the outcome rate per session, voucher minus none, times the in-win
 per day (every session treated against none). Switchback sessions in the burn-in minutes of a
 block are left out of the difference (Hu & Wager 2022) but every session counts in the scaling.
 Intervals bootstrap the randomized unit: the rider for the rider-level A/B, the (cluster, block)
-for a switchback (decisions H-19a). The ground truth is the GTE of the ``gte`` runs, all_on
-minus all_off without budget, paired by seed; bias = estimate - GTE (decisions T-34).
+for a switchback. The ground truth is the GTE of the ``gte`` runs, all_on
+minus all_off without budget, paired by seed; bias = estimate - GTE.
 
 **confounding**: legacy runs that differ only in how strongly the old rule targets on the
 hidden ``u_latent`` (``policy.legacy.target_g_u``). Three observational estimates of the effect
@@ -17,7 +17,7 @@ on completion against their randomized counterpart from the explore slice of the
 ``naive`` (offered vs not, all non-explore sessions) against the explore slice; ``adjusted``
 (offered vs not inside strata of observed rider features, cells with promotion on) against the
 explore sessions of cells with promotion on. ``adjusted`` removes what observed columns explain,
-so what is left is the bias of ``u_latent`` (decisions T-34).
+so what is left is the bias of ``u_latent``.
 """
 
 from __future__ import annotations
@@ -219,13 +219,13 @@ def confounding_markdown(table: pd.DataFrame) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Waterfall of the three error sources (task H9.5, plan v3 §4.4, mentor criterion 4)
+# Waterfall of the three error sources
 # ---------------------------------------------------------------------------
 
 
 def naive_legacy_effect(run_dir: Path | str, *, outcome: str = "completed", n_boot: int = 500, seed: int = 0) -> dict:
     """The "raw comparison" of the historical (legacy) data, scaled like a design effect: completion rate of
-    offered minus not-offered sessions outside the explore slice, times in-window sessions per day (T-34 a).
+    offered minus not-offered sessions outside the explore slice, times in-window sessions per day.
     Bootstrap by rider."""
     run = load_run(Path(run_dir))
     cfg = yaml.safe_load(run["run_metadata"]["config_yaml"].iloc[0])
@@ -328,7 +328,7 @@ def waterfall_markdown(table: pd.DataFrame) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Burn-in bias vs carry-over of the city-wide switchback (task H9.6, plan v3 §4.5)
+# Burn-in bias vs carry-over of the city-wide switchback
 # ---------------------------------------------------------------------------
 
 
@@ -337,7 +337,7 @@ def burnin_decomposition(switchback_all_dir, gte_dir, *, outcome: str = "complet
     """The city-wide switchback estimate against the GTE, split in two:
 
     - **burn-in bias** = estimate on every session − estimate without the first ``burnin_min`` minutes of each
-      block (sessions flagged ``in_burnin``, decisions T-15): the part due to the market still carrying the
+      block (sessions flagged ``in_burnin``): the part due to the market still carrying the
       previous block's state right after a switch;
     - **carry-over** (ảnh hưởng kéo dài) = estimate without burn-in − GTE: what remains because an hour of
       vouchers moves drivers and riders beyond the first minutes of the next block.
@@ -386,7 +386,7 @@ def main(argv=None) -> int:
     c.add_argument("dirs", nargs="+", type=Path)
     c.add_argument("--n-boot", type=int, default=200)
     c.add_argument("--out", type=Path, default=None)
-    w = sub.add_parser("waterfall", help="three error sources on one scale (H9.5)")
+    w = sub.add_parser("waterfall", help="three error sources on one scale")
     w.add_argument("--legacy", type=Path, required=True)
     w.add_argument("--rider-ab", type=Path, required=True)
     w.add_argument("--gte", type=Path, required=True)
@@ -394,7 +394,7 @@ def main(argv=None) -> int:
     w.add_argument("--outcome", choices=("completed", "requested"), default="completed")
     w.add_argument("--n-boot", type=int, default=500)
     w.add_argument("--out", type=Path, default=None)
-    b = sub.add_parser("burnin", help="burn-in bias vs carry-over of the city-wide switchback (H9.6)")
+    b = sub.add_parser("burnin", help="burn-in bias vs carry-over of the city-wide switchback")
     b.add_argument("--switchback-all", type=Path, required=True)
     b.add_argument("--gte", type=Path, required=True)
     b.add_argument("--outcome", choices=("completed", "requested"), default="completed")

@@ -1,7 +1,7 @@
 """Estimation on experiment data: voucher effect by supply tension, sign changes (A4), threshold estimate.
 
-Task H4.2 (docs/phan_cong.md). Inputs are run directories written by ``generate`` with
-``policy.name = experiment`` (docs/datasets.md, B7a). Only observed/ and market/ tables are
+Inputs are run directories written by ``generate`` with ``policy.name = experiment``
+(README.md, section "Tái lập kết quả"; e.g. ``runs/b7a``). Only observed/ and market/ tables are
 read; nothing here touches hidden/ (docs/schema.md).
 
 The unit of randomization is a (cluster, block). Every confidence interval resamples those
@@ -10,11 +10,11 @@ units, never single sessions: sessions of one unit share the same arm and the sa
 Moderators (the tension measure a session is binned by):
 
 - ``cell_lag``     slack of the session's cell in the previous slot (``slack_lag_slot``). This is
-                   what docs/tests.md A4 names, but inside a block it is already affected by the
+                   what acceptance check A4 names, but inside a block it is already affected by the
                    block's own arm (post-treatment), so on/off groups are not comparable.
 - ``cell_pre``     slack of the cell in the last slot before the block began.
 - ``ring_pre``     idle / en-route summed over the cell and its six neighbours, last slot before the
-                   block (the s_hat chosen in H5.3, decisions H-25).
+                   block (the s_hat chosen by ``analysis.tension``).
 - ``cluster_pre``  idle / en-route summed over the session's cluster, last slot before the block.
 - ``system_pre``   idle / en-route summed over all cells, last slot before the block.
 
@@ -41,7 +41,7 @@ DEFAULT_EDGES = (0.0, 0.2, 0.35, 0.6, 1.0, 2.0, 5.0, np.inf)
 
 
 def ratio_slack(idle, enroute) -> np.ndarray:
-    """``idle / enroute`` with the rule of the simulator: E = 0 gives inf if I > 0, else 0 (decisions H-14)."""
+    """``idle / enroute`` with the rule of the simulator: E = 0 gives inf if I > 0, else 0."""
     idle = np.asarray(idle, dtype=np.float64)
     enroute = np.asarray(enroute, dtype=np.float64)
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -71,8 +71,8 @@ def run_config(run: dict[str, pd.DataFrame]) -> dict:
 def stored_config(raw: dict):
     """``Config`` of a stored run config; keys added to ``config/default.yaml`` after the run take their default.
 
-    ``build_config`` rejects a stored config that lacks a key added later (e.g. B7a, generated
-    before ``policy.threshold.scope``, decisions T-32, T-35); every stored value still wins.
+    ``build_config`` rejects a stored config that lacks a key added later (e.g. ``runs/b7a``, generated
+    before ``policy.threshold.scope``); every stored value still wins.
     """
     from sim.config import build_config, load_raw
 
@@ -209,7 +209,7 @@ def effect_by_bin(frame: pd.DataFrame, moderator: str, *, edges=None, quantiles:
 
 
 def sign_changes(effects) -> int:
-    """Number of sign changes along the ordered bins (docs/tests.md A4); zeros and NaN are skipped."""
+    """Number of sign changes along the ordered bins (acceptance check A4); zeros and NaN are skipped."""
     signs = [np.sign(e) for e in np.asarray(effects, dtype=np.float64) if np.isfinite(e) and e != 0]
     return int(sum(a != b for a, b in zip(signs[:-1], signs[1:])))
 
@@ -247,7 +247,7 @@ def theta_hat(frame: pd.DataFrame, moderator: str, *, quantiles: int = 20, outco
 
     This is the zero crossing of the effect **without a budget constraint**. The optimum
     theta* of a budgeted sweep can sit higher, because a budget makes it worth cutting
-    cells whose effect is positive but small (compared in task H5.3).
+    cells whose effect is positive but small (compared in ``analysis.theta``).
     """
     f = frame[~frame["in_burnin"]] if drop_burnin else frame
     f = assign_bins(f, moderator, quantiles=quantiles)

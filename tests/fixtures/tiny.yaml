@@ -1,4 +1,4 @@
-# tests/fixtures/tiny.yaml: lớp ghi đè lên config/default.yaml cho test nhanh (docs/tests.md).
+# tests/fixtures/tiny.yaml: lớp ghi đè lên config/default.yaml cho test nhanh.
 # Chỉ ghi các khóa khác default.yaml. Cách nạp:
 #   load_config(["config/default.yaml", "tests/fixtures/tiny.yaml"])
 #   python -m sim run ... --config config/default.yaml --config tests/fixtures/tiny.yaml
@@ -6,9 +6,9 @@
 space:
   grid_radius: 1                  # 7 ô
 time:
-  window_min: 120                 # cửa sổ đánh giá 2 giờ [decisions T-05]
+  window_min: 120                 # cửa sổ đánh giá 2 giờ
 demand:
-  base_sessions_per_cell_h: 35.0  # giữ thế giới nhỏ của test nhanh sau khi default.yaml lên quy mô Hà Nội (H7.1)
+  base_sessions_per_cell_h: 35.0  # giữ thế giới nhỏ của test nhanh sau khi default.yaml lên quy mô Hà Nội
   n_riders: 20000
 supply:
   fleet_size: 10

@@ -1,4 +1,4 @@
-"""Gate plots (decisions T-13): N(pi_theta) over theta (gate P6) and the throughput curve (A1, gates P2 / P3).
+"""Plots: N(pi_theta) over theta and the throughput curve (A1).
 
 ``python -m analysis.plots theta_sweep runs/p6/sweep_theta [--gte runs/b7a/gte]``
 ``python -m analysis.plots throughput runs/<throughput run>``
@@ -8,8 +8,8 @@ to it (``results/<name>.png``). One measure per panel (never two y-scales on one
 axis), one hue for the single series, reference lines in neutral ink with a
 direct label, recessive grid. Needs matplotlib (extra ``[analysis]``).
 
-The result notebooks (decisions H-27) use the same style through :func:`pyplot`
-and write the figures of the report to ``docs/figures/`` with :func:`save_figure`.
+The result notebooks use the same style through :func:`pyplot`
+and write their figures to ``docs/figures/`` with :func:`save_figure`.
 """
 
 from __future__ import annotations
@@ -51,10 +51,10 @@ def pyplot():
 
 
 def save_figure(fig, name: str, *, figures_dir: Path | None = None, dpi: int = 150) -> Path:
-    """Write ``fig`` to ``docs/figures/<name>.png`` for the report and slides (decisions H-27).
+    """Write ``fig`` to ``docs/figures/<name>.png``.
 
     ``name`` starts with the number of the notebook that owns the figure (``04_regret``),
-    so the two authors never write the same file. The figure stays open, so a
+    so two notebooks never write the same file. The figure stays open, so a
     notebook still shows it under the cell. ``dpi`` 150 by default; the slide figures
     of ``analysis.data_stats`` use 220.
     """

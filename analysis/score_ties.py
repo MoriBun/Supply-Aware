@@ -1,13 +1,13 @@
-"""Table scores with ties broken at random, for use under a budget (decisions T-33 (e)).
+"""Table scores with ties broken at random, for use under a budget.
 
 ``policy.threshold.score_fn = "analysis.score_ties:tau_x_baseline"``
 
-The H4.2 baseline scores (``analysis.scores``) take one value per stratum, 9 values in all.
-kappa-auto keeps or drops a whole group of equal scores (decisions T-32 (b)), so with so few
-groups it can only stop at a group edge: in the T5.1 run ``tau_x_baseline`` got kappa = +inf
+The baseline scores of ``analysis.scores`` take one value per stratum, 9 values in all.
+kappa-auto keeps or drops a whole group of equal scores, so with so few
+groups it can only stop at a group edge: in the policy-table run ``tau_x_baseline`` got kappa = +inf
 (the top stratum alone costs more than B, nobody gets a voucher) and
 ``tau_per_dollar_baseline`` spent 72% of B. Here each score gets ``u_score`` (the pre-drawn
-uniform of the session, decisions T-07) times half the smallest gap between table values:
+uniform of the session) times half the smallest gap between table values:
 the order between strata is unchanged and the order inside a stratum is random, so the budget
 can stop inside a stratum. ``u_score`` is a column of the ``SessionBatch``, the same in every
 policy, so common random numbers hold.

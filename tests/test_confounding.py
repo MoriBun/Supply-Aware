@@ -1,4 +1,4 @@
-"""Task H6.3: analysis/confounding.py (how the legacy targeting on u_latent confounds the effect)."""
+"""analysis/confounding.py: how the legacy targeting on u_latent confounds the effect."""
 
 import numpy as np
 import pandas as pd

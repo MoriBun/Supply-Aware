@@ -6,12 +6,13 @@
 #   - Đơn vị ghi trong tên khóa: _s (giây), _min (phút), _h (giờ),
 #     _km, _kmh, _vnd. Không có hậu tố = không thứ nguyên.
 #   - Mỗi tham số có chú thích nguồn:
-#       [report]  báo cáo thiết kế (Simulation_design_fix.pdf)
-#       [data]    báo cáo dữ liệu NYC / số liệu mentor nêu trong review
-#       [paper]   bài báo (ghi tên)
-#       [assume]  giả định của nhóm, CẦN HIỆU CHỈNH ở mốc P3 (docs/plan.md)
-#       [pending] chờ mentor xác nhận
-#   - Ghi đè khi chạy: --set key.sub=value (xem docs/spec.md §9).
+#       [design]     lựa chọn thiết kế của mô hình
+#       [data]       số liệu thực tế (ghi nguồn khi có)
+#       [paper]      bài báo (ghi tên)
+#       [suy]        tính ra từ số liệu công bố
+#       [assume]     giả định của nhóm
+#       [hiệu chỉnh] chỉnh để đạt calibration_targets
+#   - Ghi đè khi chạy: --set key.sub=value (xem README, mục "Cấu hình").
 # =====================================================================
 
 meta:
@@ -23,22 +24,22 @@ meta:
 # M1 SpaceTime — không gian
 # ---------------------------------------------------------------------
 space:
-  variant: synthetic          # synthetic | nyc   (nyc: xem spec §10, làm sau)
-  grid_radius: 4              # 4 -> 61 ô, 315 km², cỡ nội thành Hà Nội [assume; H7.1, ĐX B1; trước 3 -> 37 ô]
-  torus: true                 # nối biên kiểu torus [report]
+  variant: synthetic          # synthetic | nyc   (nyc: chưa cài)
+  grid_radius: 4              # 4 -> 61 ô, 315 km², cỡ nội thành Hà Nội [assume]
+  torus: true                 # nối biên kiểu torus [design]
   edge_km: 1.41               # ô H3 độ phân giải 7: diện tích TB 5,161 km² -> cạnh √(5,161/2,598)
-                              # [data: bảng diện tích ô H3; H7.1, ĐX B1; trước 0,75]
+                              # [data: bảng diện tích ô H3, h3geo.org]
   detour_factor: 1.3          # quãng đường thực / đường chim bay [assume]
   nn_const: 0.5               # E[khoảng cách tới điểm gần nhất] = nn_const*sqrt(A/I)
                               # cho điểm Poisson trên mặt phẳng [paper: xấp xỉ chuẩn]
-  eta_gamma: 0.5              # γ trong ETA = c*(A/I)^γ [report, Castillo et al. 2025]
+  eta_gamma: 0.5              # γ trong ETA = c*(A/I)^γ [design, Castillo et al. 2025]
   eta_floor_min: 1.0          # ETA đón tối thiểu [assume]
   intra_cell_dist_factor: 0.5 # quãng đường chuyến trong cùng ô = f*sqrt(A)*detour [assume]
-  nyc_near_rings: 2           # bản NYC: cặp ô cách ≤ số vành này dùng khoảng cách/tốc độ [report]
-  base_speed_kmh: 18.0        # Hà Nội: 10 km mất 33 phút 20 giây [data: TomTom Traffic Index 2025; ĐX B1]
+  nyc_near_rings: 2           # bản NYC: cặp ô cách ≤ số vành này dùng khoảng cách/tốc độ [design]
+  base_speed_kmh: 18.0        # Hà Nội: 10 km mất 33 phút 20 giây [data: TomTom Traffic Index 2025]
   # hệ số tốc độ theo giờ 0..23 (nhân với base_speed_kmh) [data: TomTom Hà Nội: cao điểm sáng
   # 15,3 km/h (×0,85), tối 13,6 km/h (×0,76); đêm ≈ 27 km/h (×1,45) suy từ độ tắc TB 49,2%;
-  # các giờ giữa nội suy: assume; H7.1, ĐX B1]
+  # các giờ giữa nội suy: assume]
   speed_factor_by_hour: [1.45, 1.45, 1.45, 1.45, 1.40, 1.25, 1.00, 0.85,
                          0.85, 0.95, 1.00, 1.00, 1.00, 1.00, 1.00, 0.95,
                          0.85, 0.76, 0.76, 0.85, 1.00, 1.10, 1.25, 1.35]
@@ -47,22 +48,22 @@ space:
 # Thời gian
 # ---------------------------------------------------------------------
 time:
-  tick_s: 60                  # [report]
-  slot_min: 15                # 15 tick / slot [report]
+  tick_s: 60                  # [design]
+  slot_min: 15                # 15 tick / slot [design]
   days_per_run: 1             # số ngày đánh giá trong 1 lượt chạy
   window_min: null            # độ dài cửa sổ đánh giá (phút); null = days_per_run*1440.
-                              # Nếu đặt: bội của slot_min, days_per_run bị bỏ qua [decisions T-05]
-  warmup_min: 60              # bỏ khỏi đánh giá [report]
+                              # Nếu đặt: bội của slot_min, days_per_run bị bỏ qua
+  warmup_min: 60              # bỏ khỏi đánh giá [design]
   cooldown_max_min: 120       # chạy tiếp sau cửa sổ đến khi hết đơn tạo trong cửa sổ,
-                              # tối đa chừng này phút [report]
+                              # tối đa chừng này phút [design]
 
 # ---------------------------------------------------------------------
 # M2 DemandGenerator — cầu
 # ---------------------------------------------------------------------
 demand:
   base_sessions_per_cell_h: 124.0 # λ trung bình mỗi ô mỗi giờ; giữ mật độ cũ: 35 × 5,161/1,461
-                                  # [hiệu chỉnh S8; H7.1, ĐX B3; trước 35]
-  demand_scale: 0.85              # núm hiệu chỉnh tổng cầu (A1 quét núm này) [hiệu chỉnh P3, H-17; trước 1,0]
+                                  # [hiệu chỉnh]
+  demand_scale: 0.85              # núm hiệu chỉnh tổng cầu (A1 quét núm này) [hiệu chỉnh]
   cell_weight_sigma: 0.5          # trọng số ô ~ LogNormal(0, σ), chuẩn hóa trung bình 1 [assume]
   # hệ số cầu theo giờ 0..23 (trung bình ≈ 1) [assume]
   hour_profile: [0.35, 0.25, 0.20, 0.20, 0.25, 0.45, 0.80, 1.40,
@@ -70,9 +71,9 @@ demand:
                  1.35, 1.75, 1.85, 1.50, 1.20, 1.05, 0.85, 0.60]
   dest_decay_rings: 2.4           # P(đích d | gốc o) ∝ w_d * exp(-dist(o,d)/L); quãng đường TB tăng chậm theo L
                                   # trên lưới bán kính 4 (1,2 → 4,25 km; 1,9 → 5,23; 2,4 → 5,56 km)
-                                  # [hiệu chỉnh S8 theo mean_trip_km, T-42; H7.1, ĐX B3 ước 1,2 cho 6 km là sai; trước 1,2]
+                                  # [hiệu chỉnh theo mean_trip_km]
   n_riders: 120000                # quần thể rider cố định; giữ ~1,3 session/khách/ngày như mô hình cũ
-                                  # [suy; H7.1, ĐX B3; trước 20.000]
+                                  # [suy]
   home_cell_share: 0.8            # xác suất session do rider sống ở ô đó mở [assume]
   trip_time_noise_sigma: 0.15     # thời gian chuyến thực = T * LogNormal(0, σ) [assume]
 
@@ -86,17 +87,17 @@ riders:
   # --- mô hình đặt xe (M4), logit theo Johari et al. 2026 (App. G.3) ---
   # Mục tiêu hiệu chỉnh: P(đặt) ≈ 15% không voucher [data];
   # tăng request ~ +50% khi dư cung (bảng trong đề bài) [data]
-  alpha0: 0.15                    # [hiệu chỉnh S8, T-42: P(đặt) = 14,5% ở ô dư cung với giá Hà Nội; trước 0,35 (H-17)]
+  alpha0: 0.15                    # [hiệu chỉnh: P(đặt) = 14,5% ở ô dư cung với giá Hà Nội]
   alpha_freq: 0.4                 # hệ số với x_freq đã chuẩn hóa [assume]
   alpha_u: 0.4                    # hệ số với u_latent (tạo confounding) [assume]
   alpha_noise_sd: 0.3             # [assume]
   beta_price_per_kvnd: 0.022      # |β_p| trung vị trên mỗi 1.000đ, dấu âm trong công thức; giữ β × giá TB như mô hình
-                                  # cũ: 0,10 × 19 USD ≈ 0,022 × 84 nghìn đồng [suy; H7.8, ĐX B3; hiệu chỉnh S8 qua alpha0, delta0]
+                                  # cũ: 0,10 × 19 USD ≈ 0,022 × 84 nghìn đồng [suy; hiệu chỉnh qua alpha0, delta0]
   beta_price_seg_mult: [1.0, 1.6, 0.6]   # nhân theo x_segment [assume]
   beta_price_noise_sd: 0.25       # log-normal quanh trung vị [assume]
   beta_eta_per_min: 0.10          # |β_η| trung vị [assume]
   beta_eta_noise_sd: 0.25         # [assume]
-  delta0: 0.25                    # phản ứng riêng với voucher [hiệu chỉnh P3, H-17: tăng request +51%; trước 0,15]
+  delta0: 0.25                    # phản ứng riêng với voucher [hiệu chỉnh: tăng request +51%]
   delta_u: 0.10                   # [assume]
   delta_seg: [0.0, 0.15, -0.10]   # [assume]
   delta_noise_sd: 0.10            # [assume]
@@ -108,21 +109,21 @@ riders:
 # M3 Pricing & voucher
 # ---------------------------------------------------------------------
 pricing:
-  # Bảng giá GrabCar 4 chỗ Hà Nội, đã gồm VAT 8% [data: Grab, cập nhật 08/07/2026; H7.8, ĐX B4, decisions H-42].
-  # Tiền VND, sổ ngân sách bằng đồng nguyên (H-33). Giá cũ theo đơn vị mới nằm ở file ghim G7.
+  # Bảng giá GrabCar 4 chỗ Hà Nội, đã gồm VAT 8% [data: Grab, cập nhật 08/07/2026].
+  # Tiền VND, sổ ngân sách bằng đồng nguyên.
   open_fare_vnd: 28473.0          # giá tối thiểu cho open_km đầu [data]
   open_km: 2.0                    # [data]
   per_km_vnd: 9818.0              # mỗi km sau open_km [data]
   per_min_vnd: 442.0              # mỗi phút sau open_km (phần thời gian theo tỷ lệ quãng đường) [data]
   platform_fee_vnd: 10000.0       # phí nền tảng mỗi chuyến, thuộc nền tảng [data: 5.000–19.000đ; mức giữa: assume]
-  commission_rate: 0.25           # phí ứng dụng trên phần cước sau phí nền tảng [data: Grab 25%; trước 0,24]
+  commission_rate: 0.25           # phí ứng dụng trên phần cước sau phí nền tảng [data: Grab 25%]
 
 voucher:
-  pct_of_fare: 0.25               # voucher = 25% giá gốc [data: mã GrabCar khung 6–9h, Hà Nội; H7.8; trước 0,20]
-  max_vnd: 20000.0                # tối đa 20.000đ [data: như trên; H7.8; trước không trần]
+  pct_of_fare: 0.25               # voucher = 25% giá gốc [data: mã GrabCar khung 6–9h, Hà Nội]
+  max_vnd: 20000.0                # tối đa 20.000đ [data: như trên]
 
 budget:
-  enforce: true                   # false cho các lượt GTE / thí nghiệm [report]
+  enforce: true                   # false cho các lượt GTE / thí nghiệm [design]
   mode: fraction_of_all_on        # B = fraction * chi tiêu voucher khi bật mọi ô, mọi rider
   fraction: 0.30                  # [assume]
   fixed_vnd: null                 # dùng khi mode = fixed
@@ -136,39 +137,38 @@ policy:
   # --- chính sách cũ (legacy): mô phỏng người vận hành ---
   legacy:
     slack_on: 0.6                 # bật ô nếu slack slot trước ≥ ngưỡng này [assume]
-    epsilon_cell: 0.10            # xác suất tung đồng xu trạng thái (ô, slot) [report]
+    epsilon_cell: 0.10            # xác suất tung đồng xu trạng thái (ô, slot) [design]
     epsilon_p_on: 0.5
     target_g0: -0.5               # P(nhắm rider) = σ(g0 + g_freq*z_freq + g_u*u_latent) [assume]
     target_g_freq: -0.5
     target_g_u: 1.0
-    explore_frac: 0.05            # lát session ngẫu nhiên hóa [report; đề bài: 5%]
+    explore_frac: 0.05            # lát session ngẫu nhiên hóa [design; đề bài: 5%]
     explore_p: 0.5
-  # --- π_θ: chính sách hai tầng [report] ---
+  # --- π_θ: chính sách hai tầng [design] ---
   threshold:
-    indicator: slack              # slack | utilization | eta   [pending: slack]
+    indicator: slack              # slack | utilization | eta   (chỉ cài slack)
     scope: cell                   # phạm vi đo ŝ: cell = slack của ô; ring1 = (Σ xe rảnh) / (Σ xe đi đón) của ô
                                   # và 6 ô kề; city = cùng tỷ số trên toàn thành phố (mọi ô một quyết định, = chỉ số
-                                  # `system` của báo cáo); +∞ cắt ở monitor.slack_cap [decisions H-25, T-35, T-40]
+                                  # `system` trong analysis/tension.py); +∞ cắt ở monitor.slack_cap
     theta: 0.35                   # chỉ dùng khi chạy 1 θ; quét θ dùng sweep.theta_grid
     forecast: persistence         # persistence | ar  (ar: dùng lag slot + lag ngày)
     ar_weights: [0.7, 0.3]        # [w_slot, w_day] khi forecast = ar [assume]
-    hysteresis_h: 0.0             # 0 = tắt; bật lại khi ŝ > θ + h [report]
+    hysteresis_h: 0.0             # 0 = tắt; bật lại khi ŝ > θ + h [design]
     score_fn: heuristic_low_freq  # random | heuristic_low_freq | oracle | "module.path:function"
                                   # oracle = (p1 − p0)/(v·p1) từ hệ số ẩn của khách, chỉ với policy.name = threshold,
-                                  # run_metadata ghi hidden_view = oracle [decisions T-40, T-41, KN 3.1]
+                                  # run_metadata ghi hidden_view = oracle
     kappa: auto                   # auto = hiệu chỉnh bằng pilot để chi tiêu kỳ vọng ≈ B
     kappa_max_iter: 10            # κ auto: số lượt pilot chạy lại tối đa sau lượt κ = −∞ (lặp đến khi
-                                  # chi của pilot ≤ B); 0 = một lượt pilot như trước H-21 [decisions H-21, T-32] [assume]
+                                  # chi của pilot ≤ B); 0 = chỉ một lượt pilot [assume]
 
 # ---------------------------------------------------------------------
 # M5 Matching
 # ---------------------------------------------------------------------
 matching:
-  max_pickup_eta_min: 30.0        # rộng để WGC xuất hiện [report] [pending]
+  max_pickup_eta_min: 30.0        # rộng để WGC xuất hiện [design]
   max_ring: null                  # null = mở rộng đến hết lưới hoặc chạm max_pickup_eta
-  ring_tiebreak: most_idle        # các ô cùng vành hòa về T: most_idle = ô nhiều xe rảnh nhất, hòa thì id nhỏ
-                                  # (KN 2.1); lowest_id = ô id nhỏ nhất (spec §4.5 trước S7, file ghim G7)
-                                  # [decisions H-29, H-37]
+  ring_tiebreak: most_idle        # các ô cùng vành hòa về T: most_idle = ô nhiều xe rảnh nhất, hòa thì id nhỏ;
+                                  # lowest_id = ô id nhỏ nhất (làm ô id nhỏ căng giả tạo)
 
 # ---------------------------------------------------------------------
 # M7 Cancellation
@@ -180,31 +180,30 @@ cancel:
   slope_per_min2: 0.004           # [assume]
   eta_free_min: 3.0               # [assume]
   exact_time: true                # true = hủy ở đúng t_cancel = matched_time + 60·e_cancel/h, kể cả khi
-                                  # t_cancel rơi vào tick xe tới (KN 2.2); false = chỉ xét ở bước 8 (trước S7,
-                                  # file ghim G7) [decisions H-29, H-38]
+                                  # t_cancel rơi vào tick xe tới; false = chỉ xét ở bước 8
 
 # ---------------------------------------------------------------------
 # M8 SupplyModel
 # ---------------------------------------------------------------------
 supply:
   fleet_size: 1150                # núm hiệu chỉnh chính: 16,8 chuyến/xe/ngày, 11,9% (ô, slot) căng
-                                  # [hiệu chỉnh S8, T-42; H7.1, ĐX B2 xuất phát 1.300; trước 240 (H-17)]
+                                  # [hiệu chỉnh]
   shift_mode: schedule            # schedule | always_on (mọi xe online suốt lượt; chỉ cho
-                                  # throughput_curve) [decisions T-02, T-08]
+                                  # throughput_curve)
   # ca làm tuần hoàn theo ngày: (giờ bắt đầu từ, đến, trọng số) — bắt đầu đều trong khoảng [assume]
-  # [hiệu chỉnh S8, T-42 theo busy_rel_h6/h7/h8 (NYC TLC, H-31): dồn ca vào 5–7,5h để 7–8h có
-  #  ~0,75 số xe của giờ đỉnh thay vì 0,45; trước: 6–8,5 (0,30), 10–14 (0,20), 15–19 (0,35), 19–23 (0,15)]
+  # [hiệu chỉnh theo busy_rel_h6/h7/h8 (NYC TLC): dồn ca vào 5–7,5h để 7–8h có
+  #  ~0,75 số xe của giờ đỉnh thay vì 0,45]
   shift_start_mixture:
     - [5.0, 7.5, 0.45]
     - [9.0, 13.0, 0.20]
     - [14.0, 18.0, 0.25]
     - [19.0, 23.0, 0.10]
-  shift_len_mean_h: 11.2          # [data: khảo sát tài xế ô tô công nghệ 11,2 giờ/ngày; H7.1, ĐX B2; trước 8,0]
-  shift_len_sd_h: 2.0             # [assume; trước 1,5]
-  shift_len_clip_h: [4.0, 14.0]   # [assume; trước [4, 11]]
-  early_exit_enabled: false       # rời sớm theo thu nhập — MẶC ĐỊNH TẮT [report]
+  shift_len_mean_h: 11.2          # [data: khảo sát tài xế ô tô công nghệ 11,2 giờ/ngày]
+  shift_len_sd_h: 2.0             # [assume]
+  shift_len_clip_h: [4.0, 14.0]   # [assume]
+  early_exit_enabled: false       # rời sớm theo thu nhập — MẶC ĐỊNH TẮT [design]
   reservation_wage_vnd_h: 80000.0 # chỉ dùng khi bật early_exit (tắt) [assume: doanh thu GrabCar 20–35 triệu/tháng
-                                  # ÷ ~300 giờ ≈ 70–115 nghìn/giờ; H7.8; B9: 2000]
+                                  # ÷ ~300 giờ ≈ 70–115 nghìn/giờ]
 
 # ---------------------------------------------------------------------
 # M9 Repositioning (quy tắc cố định, không nhìn cầu hiện tại)
@@ -219,15 +218,15 @@ reposition:
 # ---------------------------------------------------------------------
 experiment:
   design: cluster_switchback      # cluster_switchback | global_switchback | rider_ab
-  cluster_level: 7                # 1 | 7 | all  (7 = cụm ~7 ô) [report]
+  cluster_level: 7                # 1 | 7 | all  (7 = cụm ~7 ô) [design]
   block_min: 60                   # [paper: Johari et al. 2026 — block 60 phút ít chệch]
   burnin_min: 15                  # bỏ đầu mỗi block khi ước lượng [paper: Hu & Wager 2022]
   p_on: 0.5
-  budget_enforce: false           # thí nghiệm không áp ngân sách [report]
+  budget_enforce: false           # thí nghiệm không áp ngân sách [design]
 
 # ---------------------------------------------------------------------
-# Biến động tự nhiên (thế giới W1) [decisions H-30; cài ở H7.4; giá trị và nguồn: docs/de_xuat_tham_so_ha_noi.md B5]
-#   Tắt (W0) thì simulator chạy đúng như cũ. Bật bằng overlay config/world_w1.yaml.
+# Biến động tự nhiên (thế giới W1)
+#   Tắt (W0) thì không có biến động nào. Bật bằng overlay config/world_w1.yaml.
 #   Lịch biến động rút trước theo ngày qua luồng SHOCK (seed theo run_seed, khóa không chứa
 #   gì về chính sách): mọi chính sách gặp cùng một biến động. Chính sách không đọc được lịch này.
 # ---------------------------------------------------------------------
@@ -269,25 +268,24 @@ generate:
   days: 28                        # số ngày dữ liệu cho mô hình [assume]
 gte:
   n_seeds: 10
-throughput:                       # mode throughput_curve, test A1 [decisions T-08]
+throughput:                       # mode throughput_curve, test A1
   # lưới theo quy mô thành phố: Hà Nội đạt đỉnh throughput ở 1,5 và bão hòa (ETA phẳng ≈ 15 phút)
-  # từ 2,25, nên lưới dừng ở 2,5 [T-43, Q30; thành phố cũ dùng 0,25…4,0 vì đỉnh ở 3,25 (H-17)]
+  # từ 2,25, nên lưới dừng ở 2,5
   demand_scale_grid: [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5]
   n_seeds: 3
   reference_hour: 18              # hour_profile và speed_factor_by_hour lấy hằng số tại giờ này
-                                  # (đỉnh cầu 1,85; tốc độ thấp nhất 0,75)
+                                  # (đỉnh cầu 1,85; tốc độ thấp nhất 0,76)
 runner:
   n_procs: null                   # số tiến trình chạy song song theo seed; null = số lõi CPU
 
 # ---------------------------------------------------------------------
-# Mục tiêu hiệu chỉnh (được kiểm ở mốc P3, docs/tests.md T-CAL)
+# Mục tiêu hiệu chỉnh (kiểm CAL, xem README, mục "Kiểm thử")
 # ---------------------------------------------------------------------
 calibration_targets:
   p_request_no_voucher: [0.13, 0.17]          # [data: 15%]
   request_uplift_surplus: [0.35, 0.70]        # +50% khi dư cung [data: bảng đề bài]
   share_cellslots_slack_below_0_35: [0.10, 0.35]  # có vùng căng thật
   share_cellslots_slack_above_1: [0.30, 0.80]     # có vùng dư thật
-  # [decisions H-31; đính chính một phần H-20; giá trị và nguồn: docs/de_xuat_tham_so_ha_noi.md mục C]
   # giờ-xe chở khách của chuyến đặt trong giờ h / giờ cao nhất, trên all_off (định nghĩa như
   # analysis/tlc_hourly.py, cột busy_real); NYC TLC 03/2024: 0,46 / 0,70 / 0,78, dải ± 0,15 [data]
   busy_rel_h6: [0.31, 0.61]
@@ -298,5 +296,4 @@ calibration_targets:
                                               # [suy: doanh thu GrabCar 20–35 triệu/tháng]
 
 performance:
-  max_seconds_per_sim_day: 60     # A5-HN: ≤ 60 giây/ngày mô phỏng/một tiến trình trên quy mô Hà Nội
-                                  # [decisions H-34; trước là 30 giây cho thành phố 54 km², report]
+  max_seconds_per_sim_day: 60     # A5: ≤ 60 giây/ngày mô phỏng/một tiến trình trên quy mô Hà Nội

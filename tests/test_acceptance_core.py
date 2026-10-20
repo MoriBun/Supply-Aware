@@ -1,7 +1,7 @@
-"""docs/tests.md §3 and §4, core acceptance: A1 (throughput curve), A5 (run time), CAL (calibration targets).
+"""Core acceptance: A1 (throughput curve), A5 (run time), CAL (calibration targets).
 
 All tests here are slow: run them with ``pytest -q -m slow tests/test_acceptance_core.py``.
-The measuring functions are importable so the calibration (milestone P3) reports the same numbers.
+The measuring functions are importable so the calibration reports the same numbers.
 """
 
 import dataclasses
@@ -36,7 +36,7 @@ def evaluate_job(cfg, policy: str) -> Job:
 
 
 def measure_runtime(cfg, policy: str, n_runs: int = 3) -> list[float]:
-    """Engine run time (seconds) of one evaluate job, ``n_runs`` times, one process (docs/tests.md A5).
+    """Engine run time (seconds) of one evaluate job, ``n_runs`` times, one process (A5).
 
     The pilots that set B and kappa are not timed: A5 is about one simulated day.
     """
@@ -46,28 +46,28 @@ def measure_runtime(cfg, policy: str, n_runs: int = 3) -> list[float]:
 
 @pytest.mark.parametrize("policy", ["all_on", "threshold"])
 def test_a5_one_simulated_day_within_the_time_limit(policy):
-    # all_on was measured before calibration (H3.1); threshold with kappa-auto is the default policy (H4.1).
+    # all_on was measured before calibration; threshold with kappa-auto is the default policy.
     cfg = load_config(DEFAULT)
     assert cfg.policy.name == "threshold" and cfg.policy.threshold.kappa == "auto"
     times = measure_runtime(cfg, policy)
     assert statistics.median(times) <= cfg.performance.max_seconds_per_sim_day, times
 
 
-# --- CAL: calibration targets (docs/tests.md §4) ---------------------------------
+# --- CAL: calibration targets ----------------------------------------------------
 
 
 def calibration_metrics(cfg, n_seeds: int = 5) -> dict[str, float]:
-    """The CAL quantities of docs/tests.md §4, pooled over ``n_seeds`` seeds of all_off.
+    """The CAL quantities, pooled over ``n_seeds`` seeds of all_off.
 
     - A session is "in surplus" when the slack its cell had in the **previous** slot is above 1
       (``slack_lag_slot``, what a policy can see). The slack of the session's own slot is an
-      outcome of that slot's bookings and must not be conditioned on (decisions H-15).
+      outcome of that slot's bookings and must not be conditioned on.
     - P(request) without voucher: requested / sessions over the surplus sessions.
     - Request uplift: ``mean(p_request_treat) / mean(p_request_control) - 1`` over the same
       sessions. Both probabilities are evaluated in the same context (same fare, same quoted
-      ETA), so the figure is free of the congestion a real all_on run adds (decisions H-16).
+      ETA), so the figure is free of the congestion a real all_on run adds.
     - Shares of (cell, slot) in the window with slack < 0.35 and > 1 (their own slot).
-    - ``busy_rel_h6/h7/h8`` (decisions H-31): trip hours of completed in-window orders by hour of
+    - ``busy_rel_h6/h7/h8``: trip hours of completed in-window orders by hour of
       day of the request, divided by the busiest hour; the definition of ``analysis/tlc_hourly.py``
       (column ``busy_real``) so the figures compare with NYC TLC.
     - ``mean_trip_km``: mean ``trip_km`` of completed in-window orders.
@@ -125,11 +125,11 @@ def test_cal_every_target_is_in_range():
     assert not out_of_range, out_of_range
 
 
-# --- A1: throughput curve (docs/tests.md §3) -------------------------------------
+# --- A1: throughput curve --------------------------------------------------------
 
 
 def throughput_summary(cfg) -> dict[str, np.ndarray]:
-    """Mean over seeds of the throughput_curve mode (T-08), by ascending demand_scale."""
+    """Mean over seeds of the throughput_curve mode, by ascending demand_scale."""
     jobs = throughput_jobs(cfg)
     table = throughput_curve_table(jobs, run_jobs(jobs, n_procs=cfg.runner.n_procs))
     mean = table.groupby("demand_scale")[["completed_per_h", "mean_slack", "mean_pickup_eta_min"]].mean().sort_index()

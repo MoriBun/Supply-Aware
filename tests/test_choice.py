@@ -1,4 +1,4 @@
-"""docs/tests.md, M4 Choice (spec §4.4): logit booking decision, hidden ground truth, orders, ledger."""
+"""Choice (sim/choice.py): logit booking decision, hidden ground truth, orders, ledger."""
 
 import math
 import warnings
@@ -21,7 +21,7 @@ HIDDEN_TRUTH = ("p_request_treat", "p_request_control", "direct_request_effect_f
 
 
 def quote_by_hand(ctx, *, voucher: bool, eta_min: float = 4.0) -> None:
-    """Stand-in for step 5 (pricing.quote, task T2.1): fare, quoted ETA and, if asked, a reserved voucher."""
+    """Stand-in for step 5 (pricing.quote): fare, quoted ETA and, if asked, a reserved voucher."""
     start, stop = ctx.tick_sessions
     s, space = ctx.sessions, ctx.world.space
     rows = slice(start, stop)
@@ -63,7 +63,7 @@ def on(cfg):
     return run_ticks(cfg, range(8 * 60, 10 * 60), voucher=True)
 
 
-# --- the logit formula (docs/tests.md M4) ---------------------------------------
+# --- the logit formula ----------------------------------------------------------
 
 
 def test_probability_matches_reference_on_1000_parameter_sets():
@@ -94,7 +94,7 @@ def test_delta_applies_only_with_a_voucher():
     assert with_v == pytest.approx(1 / (1 + math.exp(-(-0.1 * 16 - 0.1 * 4 + 5.0))))
 
 
-# --- common random numbers (docs/tests.md M4) -----------------------------------
+# --- common random numbers ------------------------------------------------------
 
 
 def test_u_book_is_the_same_under_two_policies(off, on):
@@ -120,7 +120,7 @@ def test_booking_rate_matches_mean_probability(off):
     assert abs(s.col("requested").mean() - p.mean()) < 4 * se
 
 
-# --- hidden ground truth (docs/tests.md M4) -------------------------------------
+# --- hidden ground truth --------------------------------------------------------
 
 
 def test_direct_effect_is_treat_minus_control(cfg, off, on):
@@ -149,7 +149,7 @@ def test_ground_truth_columns_are_hidden_only(off):
 
 
 def test_longer_quoted_eta_lowers_the_booking_probability(cfg):
-    # no_supply sessions are quoted max_pickup_eta_min (spec §4.1, §4.4); beta_eta < 0 for every rider.
+    # no_supply sessions are quoted max_pickup_eta_min; beta_eta < 0 for every rider.
     near = run_ticks(cfg, range(8 * 60, 8 * 60 + 20), voucher=False, eta_min=3.0)
     far = run_ticks(cfg, range(8 * 60, 8 * 60 + 20), voucher=False, eta_min=cfg.matching.max_pickup_eta_min)
     assert (far.sessions.col("p_request_control") < near.sessions.col("p_request_control")).all()

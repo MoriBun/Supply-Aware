@@ -1,6 +1,6 @@
-"""Struct-of-arrays state shared by every module (spec §3, §8; docs/schema.md).
+"""Struct-of-arrays state shared by every module (docs/schema.md).
 
-Contract pieces frozen in Sprint 0 (docs/phan_cong.md):
+Contract pieces shared by the modules:
 - status / mechanism codes (int8) and their strings in the logged tables;
 - column lists of the session and order buffers with dtype, fill value and the
   engine step that first writes them;
@@ -8,7 +8,7 @@ Contract pieces frozen in Sprint 0 (docs/phan_cong.md):
 - ``Clock`` (tick / slot / window / budget period arithmetic) and ``SimContext``,
   the one object every engine step receives.
 
-``BudgetLedger`` lives in ``sim/budget.py`` and is re-exported here (decisions L11).
+``BudgetLedger`` lives in ``sim/budget.py`` and is re-exported here.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from sim.budget import BudgetLedger  # noqa: F401  (re-export, decisions L11)
+from sim.budget import BudgetLedger  # noqa: F401  (re-export)
 from sim.config import Config, budget_period_min, eval_window_min
 from sim.rng import Rng, ticks_per_day
 
@@ -91,14 +91,14 @@ class CancelReason(enum.IntEnum):
 CANCEL_REASON_NAMES = {CancelReason.NONE: "", CancelReason.RIDER_EN_ROUTE: "rider_en_route"}
 
 
-# Columns that must never appear in observed/ or market/ tables (docs/schema.md, decisions T-11).
+# Columns that must never appear in observed/ or market/ tables (docs/schema.md).
 HIDDEN_COLUMNS = frozenset({
     "u_latent", "alpha", "beta_price", "beta_eta", "delta_promo", "max_wait_min", "propensity_true",
     "p_request_treat", "p_request_control", "direct_request_effect_fixed_market",
     "u_book", "u_target", "u_explore", "u_explore_arm", "u_score", "trip_noise", "e_cancel",
 })
-# Pre-drawn numbers a policy may consume through SessionBatch (decisions T-07). Everything
-# else in HIDDEN_COLUMNS is forbidden in SessionBatch (docs/tests.md, "Chính sách").
+# Pre-drawn numbers a policy may consume through SessionBatch. Everything
+# else in HIDDEN_COLUMNS is forbidden in SessionBatch.
 POLICY_UNIFORMS = frozenset({"u_target", "u_explore", "u_explore_arm", "u_score"})
 
 
@@ -112,7 +112,7 @@ class Column:
     name: str
     dtype: str
     fill: Any
-    step: str                       # engine step (spec §4.0) that first writes it
+    step: str                       # engine step that first writes it
     hidden: bool = False            # logged to hidden/ only
     internal: bool = False          # engine bookkeeping, never logged
     codes: dict | None = None       # int8 code -> string in the logged table
@@ -125,7 +125,7 @@ def _col(name, dtype, fill, step, **kw) -> Column:
 def decode_codes(column: Column, values: np.ndarray) -> np.ndarray:
     """Strings of the logged table for an int8 code column; unknown codes (e.g. -1) become ``""``.
 
-    The logger calls this for every column with ``codes`` (decisions T-19, T-20);
+    The logger calls this for every column with ``codes``;
     buffers never hold strings.
     """
     if column.codes is None:
@@ -165,7 +165,7 @@ SESSION_COLUMNS: tuple[Column, ...] = (
     _col("budget_period", "int16", -1, "quote"),
     _col("score", "float32", NAN, "quote"),
     _col("slack_hat", "float32", NAN, "quote"),
-    _col("lag_slot_same_block", "bool", True, "quote"),      # T-40/T-41: slot k-1 in the same switchback block (T7.4)
+    _col("lag_slot_same_block", "bool", True, "quote"),      # slot k-1 in the same switchback block
     _col("requested", "bool", False, "decide"),
     _col("in_window", "bool", False, "spawn"),
     # hidden/sessions_hidden
@@ -216,7 +216,7 @@ ORDER_COLUMNS: tuple[Column, ...] = (
 
 
 class SoABuffer:
-    """Preallocated struct-of-arrays table that grows by doubling (spec §8).
+    """Preallocated struct-of-arrays table that grows by doubling.
 
     Columns are exposed as attributes (``buf.session_id``) and are the *full*
     capacity arrays; use ``buf.col(name)`` for the filled prefix ``[:n]``. A
@@ -309,7 +309,7 @@ class OrderBuffer(SoABuffer):
 
 
 class DriverState:
-    """Fleet as parallel numpy arrays (spec §8). Index = driver_id."""
+    """Fleet as parallel numpy arrays. Index = driver_id."""
 
     def __init__(self, n: int) -> None:
         self.n = int(n)
@@ -322,7 +322,7 @@ class DriverState:
         self.shift_start_s = np.full(n, NAN, dtype=np.float64)  # current/next shift, absolute seconds
         self.shift_end_s = np.full(n, NAN, dtype=np.float64)
         self.earnings_vnd = np.zeros(n, dtype=np.float64)
-        self.reposition_count = np.zeros(n, dtype=np.int32)  # DRIVER stream counter (spec §4.9)
+        self.reposition_count = np.zeros(n, dtype=np.int32)  # DRIVER stream counter
 
     def count_by_status(self) -> dict[DriverStatus, int]:
         counts = np.bincount(self.status.astype(np.int64), minlength=len(DriverStatus))
@@ -330,7 +330,7 @@ class DriverState:
 
 
 class CellCounters:
-    """Live per-cell counts maintained by the modules (spec §4.5, §4.11)."""
+    """Live per-cell counts maintained by the modules."""
 
     def __init__(self, n_cells: int) -> None:
         self.n_cells = int(n_cells)
@@ -341,7 +341,7 @@ class CellCounters:
 
 
 class SlotCounters:
-    """Accumulators of the current slot, reset by the monitor after publishing (spec §4.11, T-15)."""
+    """Accumulators of the current slot, reset by the monitor after publishing."""
 
     def __init__(self, n_cells: int) -> None:
         self.n_cells = int(n_cells)
@@ -375,7 +375,7 @@ class SlotCounters:
 
 @dataclass(frozen=True)
 class Clock:
-    """Tick / slot / window / budget-period arithmetic (spec §2, §4.0; decisions T-03, T-05)."""
+    """Tick / slot / window / budget-period arithmetic."""
 
     tick_s: int
     slot_s: int
@@ -438,7 +438,7 @@ class Clock:
         return self.window_start_s <= t < self.window_end_s
 
     def period_of(self, t: float) -> int:
-        """Budget period of a time, -1 in warm-up (decisions T-03)."""
+        """Budget period of a time, -1 in warm-up."""
         if t < self.window_start_s:
             return -1
         return int((t - self.window_start_s) // self.period_s)
@@ -464,7 +464,7 @@ class SimContext:
     tick_sessions: tuple[int, int] = (0, 0)   # [start, stop) rows of sessions spawned this tick
     current_slot: int = -1
     profile: dict[str, float] = field(default_factory=dict)
-    shocks: Any = None                         # sim.shocks.ShockSchedule when shocks.enabled (H7.4), else None
+    shocks: Any = None                         # sim.shocks.ShockSchedule when shocks.enabled, else None
 
     @property
     def n_cells(self) -> int:

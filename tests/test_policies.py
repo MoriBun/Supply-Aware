@@ -1,4 +1,4 @@
-"""Sprint-0 contract: policies/base.py, FixedPolicy, policy factory (docs/phan_cong.md, S0 item 4)."""
+"""Policy contract: policies/base.py, FixedPolicy, policy factory."""
 
 import dataclasses
 import math
@@ -35,7 +35,7 @@ def store_with_slack(n_cells: int, slack_rows: list[list[float]], slots_per_day:
     return store
 
 
-# --- SessionBatch (docs/tests.md: "SessionBatch truyền cho π_θ không chứa cột ẩn") ---
+# --- SessionBatch passed to pi_theta carries no hidden column ------------------------
 
 
 def test_session_batch_has_no_hidden_columns():
@@ -171,10 +171,10 @@ def test_make_policy_builds_every_policy(tiny_cfg, tiny_layers):
     assert th.theta == 0.7 and th.kappa == 0.2
     assert make_policy(tiny_cfg, world).theta == tiny_cfg.policy.threshold.theta
     with pytest.raises(NotImplementedError):
-        make_policy(load_config(tiny_layers, ["policy.threshold.indicator=utilization"]), world)   # Q19
+        make_policy(load_config(tiny_layers, ["policy.threshold.indicator=utilization"]), world)
 
 
-# --- score functions (spec §6; decisions T-07, T-21; task T1.3) ---------------------------
+# --- score functions ----------------------------------------------------------------------
 
 
 def test_builtin_scores_random_and_low_freq():
@@ -182,7 +182,7 @@ def test_builtin_scores_random_and_low_freq():
     s_hat = np.full(5, np.nan)
     rnd = score_batch(load_score_fn("random"), batch, s_hat)
     assert rnd.dtype == np.float32
-    np.testing.assert_array_equal(rnd, batch.u_score.astype(np.float32))      # T-07: pre-drawn, never redrawn
+    np.testing.assert_array_equal(rnd, batch.u_score.astype(np.float32))      # pre-drawn, never redrawn
     low = score_batch(load_score_fn("heuristic_low_freq"), batch, s_hat)
     np.testing.assert_array_equal(low, -batch.x_freq)
     assert int(low.argmax()) == 0                                              # lowest frequency scores highest
@@ -213,7 +213,7 @@ def test_score_batch_validates_output_and_s_hat():
     assert out.dtype == np.float32 and out.tolist() == [0.0, 1.0, 2.0, 3.0]
 
 
-# --- ThresholdPolicy pi_theta (spec §6; docs/tests.md "Chính sách"; T-23; task T2.3) ------------
+# --- ThresholdPolicy pi_theta -------------------------------------------------------------------
 
 
 def threshold(default_yaml, *overrides, **kw) -> ThresholdPolicy:
@@ -226,7 +226,7 @@ def test_threshold_theta_zero_cuts_nothing_and_huge_theta_cuts_every_cell(defaul
     zero = threshold(default_yaml, theta=0.0).cell_state(1, view)
     assert zero.promo_on.all() and (zero.cell_propensity == 1.0).all()
     assert (zero.mechanism == int(Mechanism.THRESHOLD)).all() and (zero.cluster_id == -1).all() and zero.block == -1
-    # T7.1 (T-39, KN 2.3): the published inf is capped at monitor.slack_cap = 10 before it reaches theta or the score
+    # The published inf is capped at monitor.slack_cap = 10 before it reaches theta or the score
     np.testing.assert_array_equal(zero.s_hat, np.array([0.1, 0.5, 10.0, 2.0, 0.34, 0.36, 10.0], dtype=np.float32))
     huge = threshold(default_yaml, theta=1e9).cell_state(1, view)
     assert not huge.promo_on.any()                                                     # every published cell is tight
@@ -237,7 +237,7 @@ def test_threshold_theta_zero_cuts_nothing_and_huge_theta_cuts_every_cell(defaul
 
 
 def test_threshold_persistence_caps_inf_at_slack_cap_in_every_scope(default_yaml, tiny_cfg):
-    # T7.1 (decisions T-39, KN 2.3): scope=cell + forecast=persistence used to pass the published inf straight
+    # scope=cell + forecast=persistence used to pass the published inf straight
     # to score_fn and slack_hat while ar and ring1 capped it; now every branch caps, NaN (not published) stays NaN.
     cap = float(load_config(default_yaml).monitor.slack_cap)
     store = store_with_slack(7, [[math.inf, 0.0, 0.5, 20.0, 1.0, 1.0, 1.0]])
@@ -299,7 +299,7 @@ def test_threshold_score_fn_sees_the_forecast_of_each_session_cell(default_yaml)
 
 
 def test_threshold_hysteresis_reduces_switches(default_yaml):
-    # One cell whose forecast alternates 0.33 / 0.37 around theta = 0.35 (docs/tests.md).
+    # One cell whose forecast alternates 0.33 / 0.37 around theta = 0.35.
     rows = [[0.33 if k % 2 == 0 else 0.37] * 7 for k in range(20)]
     store = store_with_slack(7, rows)
 
@@ -336,7 +336,7 @@ def test_threshold_kappa_and_indicator_defaults(default_yaml):
         threshold(default_yaml, "policy.threshold.indicator=eta")
 
 
-# --- LegacyPolicy (spec §6; docs/tests.md "Chính sách"; T-24; task T2.3) -----------------------
+# --- LegacyPolicy ------------------------------------------------------------------------------
 
 
 def legacy(tiny_layers, *overrides, u_latent=None, zf=None) -> tuple[LegacyPolicy, object]:
@@ -360,7 +360,7 @@ def test_legacy_cell_rule_on_lagged_slack_with_epsilon_coin(tiny_layers):
     np.testing.assert_array_equal(cd.promo_on, np.where(is_eps, coin, rule_on))
     np.testing.assert_array_equal(cd.mechanism, np.where(is_eps, int(Mechanism.LEGACY_EPS), int(Mechanism.LEGACY_RULE)))
     np.testing.assert_allclose(cd.cell_propensity, 0.9 * rule_on + 0.05, atol=1e-6)
-    # H7.6 (KN 3.3, H-40): s_hat carries the published slack of slot k-1, capped; it does not decide anything.
+    # s_hat carries the published slack of slot k-1, capped; it does not decide anything.
     np.testing.assert_allclose(cd.s_hat, np.minimum(slack, cfg.monitor.slack_cap), rtol=1e-6)
     assert (cd.cluster_id == -1).all() and cd.block == -1 and not cd.in_burnin and cd.lag_same_block
     first = pol.cell_state(0, SnapshotView(SnapshotStore(7, 96), 0))       # no snapshot yet: rule is off
@@ -380,7 +380,7 @@ def test_legacy_targets_riders_by_hidden_u_latent(tiny_layers):
     cd = CellDecision.blank(2, 7, promo_on=True, mechanism=Mechanism.LEGACY_RULE)
     dec = pol.offer(batch, cd, make_ledger())
     p_target = sigmoid(p.target_g0 + p.target_g_u * np.array([3.0, -3.0, 0.0, 0.0]))
-    np.testing.assert_allclose(dec.propensity_true, p_target, atol=1e-6)    # hidden truth (T-24)
+    np.testing.assert_allclose(dec.propensity_true, p_target, atol=1e-6)    # hidden truth
     np.testing.assert_array_equal(dec.offer, batch.u_target < p_target)
     assert dec.offer.tolist() == [True, False, False, False]
     assert np.isnan(dec.propensity).all()                                   # analyst does not know the targeting
@@ -422,7 +422,7 @@ def test_legacy_draws_only_from_the_cellslot_stream(tiny_layers):
     assert rng.streams == {Stream.CELLSLOT}
 
 
-# --- ExperimentPolicy (spec §4.10, §6; T-25; task T2.3) ---------------------------------------
+# --- ExperimentPolicy -------------------------------------------------------------------------
 
 
 def test_experiment_policy_cluster_switchback(default_yaml):
@@ -465,7 +465,7 @@ def test_experiment_policy_global_switchback_and_rider_ab(default_yaml):
     assert (dec.propensity == np.float32(0.5)).all()
 
 
-# --- scope ring1 (decisions H-25, T-35) --------------------------------------------------------
+# --- scope ring1 -------------------------------------------------------------------------------
 
 
 def test_threshold_ring1_sums_idle_and_enroute_over_the_cell_and_its_neighbours(default_yaml):
@@ -481,7 +481,7 @@ def test_threshold_ring1_sums_idle_and_enroute_over_the_cell_and_its_neighbours(
     expected = np.array([(idle[c] + idle[nb[c]].sum()) / (enroute[c] + enroute[nb[c]].sum()) for c in range(7)])
     np.testing.assert_allclose(s_hat, expected)                        # here 3.5 / 2.5 for every cell
     assert pol.cell_state(1, SnapshotView(store, 1)).promo_on.all()    # 1.4 >= theta = 1
-    # Rule of H-14 on the ring, inf capped at slack_cap: no idle driver -> 0; idle but none en route -> cap.
+    # The slack rule on the ring, inf capped at slack_cap: no idle driver -> 0; idle but none en route -> cap.
     store2 = SnapshotStore(7, 96)
     store2.publish(0, blank_record(7, 0, idle_avg=np.zeros(7), enroute_avg=np.ones(7)))
     assert (pol.forecast_slack(SnapshotView(store2, 1)) == 0.0).all()
@@ -514,7 +514,7 @@ def test_threshold_ring1_on_the_default_torus_and_scope_cell_is_unchanged(defaul
         ThresholdPolicy(cfg, n)                                       # ring1 needs the neighbour table
 
 
-# --- scope city (T7.2, decisions T-40; KN 3.2) ---------------------------------------------------
+# --- scope city ----------------------------------------------------------------------------------
 
 
 def test_threshold_city_scope_gives_every_cell_the_system_slack_and_one_decision(default_yaml):
@@ -533,7 +533,7 @@ def test_threshold_city_scope_gives_every_cell_the_system_slack_and_one_decision
     assert on.promo_on.all()                                                        # system slack 1.5 >= 0.5
     off = make_policy(cfg, world, theta=system + 0.1).cell_state(1, SnapshotView(store, 1))
     assert not off.promo_on.any()                                                   # one decision for the whole city
-    # H-14 and the cap apply to the city-wide ratio; no neighbour table is needed.
+    # The no-idle-driver rule and the cap apply to the city-wide ratio; no neighbour table is needed.
     bare = ThresholdPolicy(cfg, n, theta=0.5)
     store2 = SnapshotStore(n, 96)
     store2.publish(0, blank_record(n, 0, idle_avg=np.ones(n), enroute_avg=np.zeros(n)))
@@ -545,7 +545,7 @@ def test_threshold_city_scope_gives_every_cell_the_system_slack_and_one_decision
     assert np.isnan(first.s_hat).all() and first.promo_on.all()                   # nothing published: on
 
 
-# --- oracle score (T7.3, decisions T-40; KN 3.1) -------------------------------------------------
+# --- oracle score --------------------------------------------------------------------------------
 
 
 def test_oracle_score_is_extra_bookings_per_expected_vnd(default_yaml):
@@ -563,7 +563,7 @@ def test_oracle_score_is_extra_bookings_per_expected_vnd(default_yaml):
     coef = (r.alpha[rid], r.beta_price[rid], r.beta_eta[rid], r.delta_promo[rid])
     p1 = request_probability(*coef, fare, v, eta)
     p0 = request_probability(*coef, fare, 0.0, eta)
-    np.testing.assert_allclose(score, 1000.0 * (p1 - p0) / (v * p1), rtol=1e-5)    # per 1.000đ (H-42)
+    np.testing.assert_allclose(score, 1000.0 * (p1 - p0) / (v * p1), rtol=1e-5)    # per 1.000đ
     assert np.isfinite(score).all() and (score > 0).all()                          # delta > 0, beta_price < 0
     cd = pol.cell_state(0, SnapshotView(SnapshotStore(37, 96), 0))
     assert pol.offer(batch, cd, make_ledger()).offer.all()                          # kappa = -inf: everyone
@@ -594,7 +594,7 @@ def test_oracle_is_gated_to_the_threshold_policy(default_yaml, monkeypatch):
     assert FORBIDDEN_IN_BATCH & {"alpha", "beta_price", "beta_eta", "delta_promo"}  # still hidden from SessionBatch
 
 
-# --- lagged slack for every policy (H7.6, KN 3.3, decisions H-40) ------------------------------------
+# --- lagged slack for every policy -------------------------------------------------------------------
 
 
 def test_experiment_and_legacy_record_the_capped_slack_of_the_previous_slot(default_yaml, tiny_layers):

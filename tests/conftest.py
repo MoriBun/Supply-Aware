@@ -14,7 +14,7 @@ def default_yaml() -> Path:
 
 @pytest.fixture
 def tiny_layers(default_yaml: Path) -> list[Path]:
-    """default.yaml followed by the tiny overlay (docs/tests.md)."""
+    """default.yaml followed by the tiny overlay."""
     return [default_yaml, ROOT / "tests" / "fixtures" / "tiny.yaml"]
 
 

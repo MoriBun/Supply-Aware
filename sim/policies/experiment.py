@@ -1,4 +1,4 @@
-"""ExperimentPolicy: applies the M10 assignment (spec §4.10, §6; decisions T-25).
+"""ExperimentPolicy: applies the M10 assignment.
 
 Switchback designs: a cell is on when its cluster is on in the current block and
 every session of an on cell is offered. ``rider_ab``: every cell is on and a
@@ -46,7 +46,7 @@ class ExperimentPolicy:
             on = experiment.cluster_on(self.rng, self.cfg, self.clusters, self.level, block)
             cell_prop = np.full(self.n_cells, self.p_on, dtype=np.float32)
             same_block = slot > 0 and experiment.block_of(self.cfg, t0 - self.slot_s) == block
-        # Published slack of slot k-1, capped like every s_hat (KN 3.3, H-40); not used to decide.
+        # Published slack of slot k-1, capped like every s_hat; not used to decide.
         lag = np.minimum(snapshots.lag("slack", 1), self.cfg.monitor.slack_cap).astype(np.float32)
         return CellDecision(
             slot=int(slot), promo_on=on, cell_propensity=cell_prop,

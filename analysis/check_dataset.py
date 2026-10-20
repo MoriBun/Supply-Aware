@@ -1,14 +1,14 @@
-"""Validate generated data sets before handing them over (docs/phan_cong.md, B7).
+"""Validate generated data sets.
 
 ``python -m analysis.check_dataset runs/b7a/legacy_28d [more dirs ...] [--markdown]``
 
 For every run directory: each table of docs/schema.md exists with exactly the
 declared columns and on-disk types (``sim.logger.RUN_TABLES``); no hidden column
-appears in observed/ or market/ (T-11); sessions, orders and results agree with
+appears in observed/ or market/; sessions, orders and results agree with
 each other; and ``config_hash`` in the metadata is the hash of the stored config.
 Directories with results only (``gte``, ``sweep_theta``, ``evaluate`` without a
-full log) get the results and metadata checks. ``--markdown`` prints the table
-rows used in docs/datasets.md. Exit code 1 when any check fails.
+full log) get the results and metadata checks. ``--markdown`` prints a Markdown
+table, one row per directory. Exit code 1 when any check fails.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ from sim.state import HIDDEN_COLUMNS
 ARROW_TO_SCHEMA = {"string": "string", "large_string": "string", "bool": "bool", "int8": "int8", "int16": "int16",
                    "int32": "int32", "int64": "int64", "float": "float32", "double": "float64"}
 TERMINAL = {"Completed", "Abandoned", "Cancelled", "Truncated"}
-# run_metadata columns added after data sets had been generated: older directories may lack them (T-32).
+# run_metadata columns added after data sets had been generated: older directories may lack them.
 META_ADDED_LATER = frozenset({"kappa_pilots"})
 
 
@@ -42,8 +42,8 @@ def stored_config_hash(config_yaml: str) -> str:
     """``config_hash`` of a stored ``config_yaml``, computed on the stored dict itself.
 
     ``config_yaml`` is the dump of the normalized config, so this equals
-    ``sim.config.config_hash(build_config(...))`` (checked on all 1.146 runs of B7a and
-    B7b, T-32), and it still works for configs written before a key was added to
+    ``sim.config.config_hash(build_config(...))`` (checked on all 1.146 runs of
+    ``runs/b7a`` and ``runs/b7b``), and it still works for configs written before a key was added to
     ``config/default.yaml``, which ``build_config`` rejects.
     """
     raw = yaml.safe_load(config_yaml)

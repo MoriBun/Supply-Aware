@@ -1,4 +1,4 @@
-"""docs/tests.md, M6 / M7 (spec §4.6, §4.7): pickup, dropoff, payments, abandonment, en-route cancellation."""
+"""Trips and cancellation: pickup, dropoff, payments, abandonment, en-route cancellation."""
 
 import math
 
@@ -73,7 +73,7 @@ def counters_ok(ctx):
 
 @pytest.fixture
 def cfg():
-    # M6/M7 unit tests on the pre-H7.1 grid (37 cells, 0.75 km): the hand-built pickups stay within reach.
+    # Unit tests on the old grid (37 cells, 0.75 km): the hand-built pickups stay within reach.
     return load_config(DEFAULT, ["space.grid_radius=3", "space.edge_km=0.75"])
 
 
@@ -82,7 +82,7 @@ def ctx(cfg):
     return make_context(cfg)
 
 
-# --- M6: pickup and dropoff (docs/tests.md) --------------------------------------
+# --- pickup and dropoff ----------------------------------------------------------
 
 
 def test_pickup_is_match_plus_eta_and_dropoff_is_pickup_plus_trip_time(ctx):
@@ -116,7 +116,7 @@ def test_pickup_is_match_plus_eta_and_dropoff_is_pickup_plus_trip_time(ctx):
 
 
 def test_payments_at_completion(cfg, ctx):
-    # H7.8 (decisions H-42): the platform fee goes to the platform, the commission applies to the rest.
+    # The platform fee goes to the platform, the commission applies to the rest.
     order = booked_order(ctx, 4, 9, fare_vnd=85000.0, voucher_dong=20000)
     driver = idle_driver(ctx, 0, 4)
     matching.match(ctx, T0)
@@ -129,7 +129,7 @@ def test_payments_at_completion(cfg, ctx):
     assert o.net_fare_vnd[order] == pytest.approx(65000.0)
     assert o.platform_profit_vnd[order] == pytest.approx(10000.0 + 0.25 * 75000.0 - 20000.0)   # fee + commission - voucher
     assert ctx.drivers.earnings_vnd[driver] == pytest.approx(0.75 * 75000.0)
-    # Voucher: committed -> spent, counted in the pickup cell at dropoff time (T-15).
+    # Voucher: committed -> spent, counted in the pickup cell at dropoff time.
     sid = int(o.session_id[order])
     assert ctx.ledger.entry(sid) == (ctx.ledger.period_of(T0), 20000, LedgerState.SPENT)
     assert ctx.slot_counters.voucher_spent_dong[4] == 20000
@@ -172,7 +172,7 @@ def test_repositioning_driver_becomes_idle_on_arrival(ctx):
     assert ctx.cells.idle[11] == 1
 
 
-# --- M7: abandonment (docs/tests.md) ---------------------------------------------
+# --- abandonment -----------------------------------------------------------------
 
 
 def test_waiting_order_is_abandoned_after_max_wait(ctx):
@@ -210,7 +210,7 @@ def test_each_rider_has_their_own_patience(ctx):
     assert ctx.orders.status[[a, b]].tolist() == [WAITING, ABANDONED] and ctx.cells.waiting[1] == 1
 
 
-# --- M7: en-route cancellation (docs/tests.md) -----------------------------------
+# --- en-route cancellation -------------------------------------------------------
 
 
 @pytest.mark.parametrize("cancel_after_min, at_origin", [(2, True), (12, False)])
@@ -292,11 +292,11 @@ def cancel_rate(eta_min: float, n: int = 10_000, exact_time: bool = True) -> flo
 
 @pytest.mark.parametrize("exact_time", [True, False])
 def test_cancellation_rate_grows_with_pickup_eta(cfg, exact_time):
-    # docs/tests.md M7: with 10 000 simulated orders the rate at ETA 10 min is above the rate at 3 min.
+    # With 10 000 simulated orders the rate at ETA 10 min is above the rate at 3 min.
     short, long = cancel_rate(3.0, exact_time=exact_time), cancel_rate(10.0, exact_time=exact_time)
     assert long > short
-    # exact_time (H7.3, decisions H-38): the exact hazard, P = 1 - exp(-h * eta). Before S7 the minute
-    # before pickup was never checked (KN 2.2): P = 1 - exp(-h * (eta - 1)).
+    # exact_time: the exact hazard, P = 1 - exp(-h * eta). Without it the minute before pickup is
+    # never checked: P = 1 - exp(-h * (eta - 1)).
     for rate, eta in ((short, 3.0), (long, 10.0)):
         exposure = eta if exact_time else eta - 1
         expected = 1 - math.exp(-float(cancel_hazard_per_min(cfg, eta)) * exposure)
@@ -306,7 +306,7 @@ def test_cancellation_rate_grows_with_pickup_eta(cfg, exact_time):
 def test_exact_cancellation_before_pickup_frees_the_driver_and_the_voucher_at_t_cancel(cfg):
     # The rider crosses the threshold between the last tick and a pickup due inside the next tick: with exact_time the
     # order is cancelled at t_cancel in step 1 (driver at the rider's cell, idle_since = t_cancel,
-    # voucher released); without it the pickup happens (H7.3, decisions H-38, KN 2.2).
+    # voucher released); without it the pickup happens.
     for exact in (True, False):
         c = load_config(DEFAULT, ["space.grid_radius=3", "space.edge_km=0.75", f"cancel.exact_time={str(exact).lower()}"])
         ctx = make_context(c)

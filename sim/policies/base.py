@@ -1,6 +1,6 @@
-"""Policy interface (spec §6) and the data that crosses it.
+"""Policy interface and the data that crosses it.
 
-Sprint-0 contract (docs/phan_cong.md, decisions T-07, T-11, T-15):
+Contract:
 - ``SessionBatch``: observed columns of the sessions quoted in one tick plus the
   pre-drawn policy uniforms; never a hidden column.
 - ``CellDecision`` (one per slot) and ``OfferDecision`` (one per batch).
@@ -43,7 +43,7 @@ class SessionBatch:
     """Sessions quoted in one tick, observed columns only (names as in docs/schema.md).
 
     ``u_target``, ``u_explore``, ``u_explore_arm`` and ``u_score`` are the
-    pre-drawn numbers a policy may consume (decisions T-07); a policy never
+    pre-drawn numbers a policy may consume; a policy never
     draws from the SESSION stream itself.
     """
 
@@ -89,7 +89,7 @@ assert not _leak, f"hidden columns in SessionBatch: {sorted(_leak)}"
 
 @dataclass
 class CellDecision:
-    """Promotion state of every cell for one slot (spec §6)."""
+    """Promotion state of every cell for one slot."""
 
     slot: int
     promo_on: np.ndarray          # bool [N]
@@ -97,9 +97,9 @@ class CellDecision:
     mechanism: np.ndarray         # int8 [N], Mechanism codes
     s_hat: np.ndarray             # float32 [N], forecast supply indicator, NaN if unused
     cluster_id: np.ndarray        # int16 [N], -1 if not an experiment
-    block: int = -1               # -1 if not an experiment (decisions T-15)
+    block: int = -1               # -1 if not an experiment
     in_burnin: bool = False
-    lag_same_block: bool = True   # slot k-1 in the same switchback block (H-40); True without blocks
+    lag_same_block: bool = True   # slot k-1 in the same switchback block; True without blocks
 
     @classmethod
     def blank(cls, slot: int, n_cells: int, *, promo_on: bool = False,
@@ -120,7 +120,7 @@ class CellDecision:
 
 @dataclass
 class OfferDecision:
-    """Policy output for one batch (spec §6). Budget is applied afterwards by the voucher layer (L12)."""
+    """Policy output for one batch. Budget is applied afterwards by the voucher layer."""
 
     offer: np.ndarray            # bool [n]
     propensity: np.ndarray       # float32 [n], NaN if unknown
@@ -143,7 +143,7 @@ class OfferDecision:
 
 
 # ---------------------------------------------------------------------------
-# Published snapshots (spec §4.11) and the no-look-ahead view (hard rule 2)
+# Published snapshots and the no-look-ahead view (hard rule 2)
 # ---------------------------------------------------------------------------
 
 
@@ -256,7 +256,7 @@ class LegacyHiddenView:
 class OracleHiddenView:
     """Booking-model coefficients (``alpha``, ``beta_price``, ``beta_eta``, ``delta_promo``) by rider id.
 
-    Second gate to hidden variables after :class:`LegacyHiddenView` (hard rule 3, decisions T-40, KN 3.1).
+    Second gate to hidden variables after :class:`LegacyHiddenView` (hard rule 3).
     Built only by ``make_policy`` for ``policy.name = threshold`` with ``score_fn = oracle``; the run is
     recorded as ``hidden_view = "oracle"`` in ``meta/run_metadata``. Never reaches ``SessionBatch`` or the logs.
     """
@@ -292,4 +292,4 @@ class Policy(Protocol):
 
     def offer(self, batch: SessionBatch, cell_dec: CellDecision, ledger: BudgetLedger) -> OfferDecision:
         """Called in step 5 for the sessions of one tick. ``ledger`` is read-only here;
-        the voucher layer applies the budget (decisions L12)."""
+        the voucher layer applies the budget."""

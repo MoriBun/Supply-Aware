@@ -1,4 +1,4 @@
-"""docs/tests.md M12 (spec §4.12; task T3.2): every table matches docs/schema.md, and hidden columns never leak."""
+"""Logger (sim/logger.py): every table matches docs/schema.md, and hidden columns never leak."""
 
 import numpy as np
 import pandas as pd
@@ -21,7 +21,7 @@ SCHEMA_TITLES = {
     "slot_snapshots": "market/slot_snapshots (một dòng mỗi (ô, slot))",
     "riders_hidden": "hidden/riders_hidden",
     "sessions_hidden": "hidden/sessions_hidden",
-    "shocks": "meta/shocks (một dòng mỗi biến động; rỗng khi `shocks.enabled = false`, H-30)",
+    "shocks": "meta/shocks (một dòng mỗi biến động; rỗng khi `shocks.enabled = false`)",
 }
 ARROW_TO_SCHEMA = {"string": "string", "large_string": "string", "bool": "bool", "int8": "int8", "int16": "int16",
                    "int32": "int32", "int64": "int64", "float": "float32", "double": "float64"}
@@ -67,7 +67,7 @@ def test_tables_match_schema_columns_and_dtypes(generated, name):
 
 
 def test_no_hidden_leak(generated):
-    # docs/tests.md M12 and M4 ("chỉ có trong hidden/"): no hidden column in observed/ or market/.
+    # No hidden column in observed/ or market/: hidden columns live only in hidden/.
     _, out, _, _ = generated
     for name, (folder, _) in RUN_TABLES.items():
         cols = set(arrow_types(out / folder / f"{name}.parquet"))

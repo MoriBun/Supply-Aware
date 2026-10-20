@@ -1,7 +1,4 @@
-"""M13 Runner: run ids, many seeds in parallel, results tables, run modes (spec §7).
-
-Milestone: P2 (``throughput_curve``, task T1.4); P6 (``evaluate``, ``gte``,
-``sweep_theta``, ``calibrate_budget``, ``generate``, task T2.4).
+"""M13 Runner: run ids, many seeds in parallel, results tables, run modes.
 
 Seeds run in separate processes started with ``spawn`` (the only start method on
 Windows), so a job carries picklable data only: the ``Config`` and scalars. The
@@ -11,8 +8,8 @@ its ``"module:function"`` string (``tests.fakes:fake_run`` in tests). Results co
 back in job order.
 
 Budget B (VND per budget period) comes from :func:`calibrate_budget`: an all_on
-pilot without budget on seed ``run_seed + pilot_seed_offset`` (spec §4.3), unless
-``budget.mode = fixed``. kappa-auto (spec §6, D12, decisions H-21, T-32) is a
+pilot without budget on seed ``run_seed + pilot_seed_offset``, unless
+``budget.mode = fixed``. kappa-auto is a
 fixed point: a threshold pilot without budget at ``kappa = -inf`` gives the
 smallest score whose expected spend fits ``B x n_periods``; the pilot is rerun at
 that kappa, and kappa is raised again, until the pilot's spend fits. Every theta
@@ -62,7 +59,7 @@ class Job:
     log_level: str = "minimal"
     profile: bool = False
     kappa_pilots: int = 0              # pilot runs kappa-auto used to set ``kappa`` (run_metadata only)
-    budget_pilot_seed: int = -1        # seed of the all_on pilot that set B; -1 = no pilot (run_metadata, T-40)
+    budget_pilot_seed: int = -1        # seed of the all_on pilot that set B; -1 = no pilot (run_metadata)
     budget_pilot_spent_vnd: float = NAN  # voucher spend of that pilot on the base window; NaN = no pilot
 
     @property
@@ -97,10 +94,7 @@ def with_policy(cfg: Config, name: str) -> Config:
 
 
 def pilot_seed(cfg: Config) -> int:
-    """Seed of every pilot run, for B and for kappa-auto at any theta: ``run_seed + budget.pilot_seed_offset``.
-
-    Spec §4.3, §6; one seed for all thetas since decisions H-21 (before: offset + theta index).
-    """
+    """Seed of every pilot run, for B and for kappa-auto at any theta: ``run_seed + budget.pilot_seed_offset``."""
     return cfg.meta.run_seed + cfg.budget.pilot_seed_offset
 
 
@@ -232,7 +226,7 @@ def write_full_runs(out_dir: Path, mode: str, jobs: list[Job], results: list[Run
         written += list(write_run(target, res, riders, rid, job.seed).values())
         if target != Path(out_dir):
             # One-row results and metadata so the run directory is self-contained: analysis.animation and
-            # analysis.check_dataset read one run at a time (T11.1); the table-level files keep every run.
+            # analysis.check_dataset read one run at a time; the table-level files keep every run.
             written.append(write_results(target, "policy_results", policy_results_table(mode, [job], [res])))
             written.append(write_metadata(target, metadata_table(mode, [job], [res])))
     return written
@@ -247,7 +241,7 @@ def _finish(mode: str, out_dir: Path, jobs: list[Job], results: list[RunResult])
 
 
 # ---------------------------------------------------------------------------
-# Budget B and kappa (spec §4.3, §6; decisions D12, T-03, T-23)
+# Budget B and kappa
 # ---------------------------------------------------------------------------
 
 
@@ -262,7 +256,7 @@ def calibrate_budget(cfg: Config, *, engine: str = DEFAULT_ENGINE) -> tuple[floa
 
 @dataclass(frozen=True)
 class BudgetPilot:
-    """B and the all_on pilot that produced it (``meta/run_metadata`` ``budget_pilot_*``, T-40, Q23)."""
+    """B and the all_on pilot that produced it (``meta/run_metadata`` ``budget_pilot_*``)."""
     budget_vnd: float | None
     pilot_seed: int = -1
     pilot_spent_vnd: float = NAN
@@ -288,12 +282,12 @@ def budget_for(cfg: Config, *, engine: str = DEFAULT_ENGINE) -> float | None:
 
 
 def kappa_from_pilot(score, voucher_vnd, completed, budget_total_vnd: float) -> float:
-    """Smallest score ``kappa`` such that the sessions with ``score >= kappa`` fit the budget (spec §6, step 3).
+    """Smallest score ``kappa`` such that the sessions with ``score >= kappa`` fit the budget.
 
     Expected spend of an offered session is its voucher when the order completed, 0
     otherwise. Sessions with equal scores are kept or dropped together, because the
     policy offers on ``score >= kappa`` (one rider's sessions share a score under
-    ``heuristic_low_freq``; decisions T-32). Sessions without a finite score are
+    ``heuristic_low_freq``). Sessions without a finite score are
     never kept. ``+inf`` when not even the top score fits, ``-inf`` when every
     session fits.
     """
@@ -322,7 +316,7 @@ def pilot_spend_vnd(pilot: RunResult) -> float:
 
 @dataclass(frozen=True)
 class KappaAuto:
-    """kappa of a threshold run and how it was found (decisions H-21, T-32)."""
+    """kappa of a threshold run and how it was found."""
 
     kappa: float
     n_pilots: int = 0                         # pilot runs used, the kappa = -inf one included; 0 = no kappa-auto
@@ -331,7 +325,7 @@ class KappaAuto:
 
 
 def kappa_auto(cfg: Config, thetas, budget_vnd: float, *, engine: str = DEFAULT_ENGINE) -> list[KappaAuto]:
-    """kappa-auto for several thetas: fixed-point iteration, the pilots of one round in parallel (H-21).
+    """kappa-auto for several thetas: fixed-point iteration, the pilots of one round in parallel.
 
     Round 0 runs every theta at ``kappa = -inf``. A pilot whose expected spend
     (:func:`pilot_spend_vnd`) exceeds ``B x n_periods`` raises its theta's kappa with
@@ -339,7 +333,7 @@ def kappa_auto(cfg: Config, thetas, budget_vnd: float, *, engine: str = DEFAULT_
     the new kappa; a theta is done when its pilot fits. Because tie groups are kept
     whole, an overspending pilot always gives a strictly larger kappa, so kappa only
     rises. After ``policy.threshold.kappa_max_iter`` reruns the last kappa found is
-    kept untested (0 reruns = the single pilot of spec §6 before H-21); the hard
+    kept untested (0 reruns = a single pilot); the hard
     budget stop of the ledger still holds in the evaluation runs. Pilots: threshold
     policy, no budget, the same seed :func:`pilot_seed` for every theta and round.
     """
@@ -385,7 +379,7 @@ def resolve_kappas(cfg: Config, thetas, budget_vnd: float | None, *,
     if k != "auto":
         return [KappaAuto(kappa=float(k)) for _ in thetas]
     if budget_vnd is None:
-        return [KappaAuto(kappa=-math.inf) for _ in thetas]    # nothing to ration without a budget (T-23)
+        return [KappaAuto(kappa=-math.inf) for _ in thetas]    # nothing to ration without a budget
     return kappa_auto(cfg, thetas, budget_vnd, engine=engine)
 
 
@@ -397,13 +391,13 @@ def resolve_kappa(cfg: Config, theta: float, budget_vnd: float | None, *,
 
 
 # ---------------------------------------------------------------------------
-# Modes (spec §7)
+# Modes
 # ---------------------------------------------------------------------------
 
 
 def evaluate(cfg: Config, out_dir: Path, *, engine: str = DEFAULT_ENGINE, log_level: str = "minimal",
              profile: bool = False) -> pd.DataFrame:
-    """``policy.name`` x ``sweep.n_seeds`` (T-22) under B; writes policy_results and run_metadata."""
+    """``policy.name`` x ``sweep.n_seeds`` under B; writes policy_results and run_metadata."""
     bp = budget_and_pilot(cfg, engine=engine)
     budget = bp.budget_vnd
     theta = float(cfg.policy.threshold.theta) if cfg.policy.name == "threshold" else NAN
@@ -463,7 +457,7 @@ def generate(cfg: Config, out_dir: Path, *, engine: str = DEFAULT_ENGINE, log_le
     meta/run_metadata under ``out_dir`` and returns the engine result.
     """
     if cfg.policy.name not in ("legacy", "experiment"):
-        raise ValueError(f"generate needs policy.name legacy or experiment, got {cfg.policy.name!r} (spec §7)")
+        raise ValueError(f"generate needs policy.name legacy or experiment, got {cfg.policy.name!r}")
     enforce = cfg.experiment.budget_enforce if cfg.policy.name == "experiment" else cfg.budget.enforce
     bp = budget_and_pilot(cfg, enforce=enforce, engine=engine)
     budget = bp.budget_vnd
@@ -487,7 +481,7 @@ def calibrate_budget_table(cfg: Config, out_dir: Path, *, engine: str = DEFAULT_
 
 
 # ---------------------------------------------------------------------------
-# Mode: throughput_curve (test A1; decisions T-08, T-15)
+# Mode: throughput_curve (test A1)
 # ---------------------------------------------------------------------------
 
 
@@ -524,7 +518,7 @@ def run_throughput_curve(cfg: Config, out_dir: Path, *, engine: str = DEFAULT_EN
 
 
 def summarize_throughput(table: pd.DataFrame) -> pd.DataFrame:
-    """Mean over seeds per demand level, for the console and the P2 gate plot."""
+    """Mean over seeds per demand level, for the console and the A1 throughput plot."""
     cols = ["completed_per_h", "requests_per_h", "mean_pickup_eta_min", "mean_slack", "abandon_rate", "cancel_rate"]
     return table.groupby("demand_scale", as_index=False)[cols].mean()
 
@@ -536,7 +530,7 @@ def summarize_throughput(table: pd.DataFrame) -> pd.DataFrame:
 
 def run_mode(mode: str, cfg: Config, out_dir: Path, *, engine: str = DEFAULT_ENGINE, log_level: str = "minimal",
              profile: bool = False) -> pd.DataFrame:
-    """Run a mode of spec §7 and return its headline table (also written under ``out_dir``)."""
+    """Run a mode and return its headline table (also written under ``out_dir``)."""
     out_dir = Path(out_dir)
     if mode == "throughput_curve":
         return run_throughput_curve(cfg, out_dir, engine=engine, profile=profile)

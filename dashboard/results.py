@@ -131,7 +131,7 @@ def evaluate_tables(runs_dir: Path, limit: int = 60) -> list[dict]:
         except Exception:  # noqa: BLE001
             continue
         if not EVAL_COLUMNS <= set(t.columns):
-            continue  # data set written before the VND columns of B9 (decisions H-33): not comparable, skip
+            continue  # data set written before the VND columns: not comparable, skip
         rows = []
         for (policy, theta), g in t.groupby(["policy", t["theta"].fillna(-1.0)], sort=True):
             n = len(g)

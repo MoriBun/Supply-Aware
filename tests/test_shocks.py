@@ -1,4 +1,4 @@
-"""Task H7.5: natural shocks of world W1 (sim/shocks.py, H7.4; decisions H-30, H-39; docs/tests.md "Biến động")."""
+"""Natural shocks of world W1 (sim/shocks.py)."""
 
 import ast
 from pathlib import Path
@@ -219,7 +219,7 @@ def test_a_rainy_w1_day_runs_and_keeps_the_invariants():
     assert (o.col("trip_km")[done] > 0).all()
 
 
-# --- meta/shocks (H7.7, decisions H-41) --------------------------------------------------------------
+# --- meta/shocks -------------------------------------------------------------------------------------
 
 
 def test_full_log_runs_write_meta_shocks(tmp_path):

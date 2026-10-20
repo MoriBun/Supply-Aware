@@ -1,4 +1,4 @@
-"""Evaluation metrics (docs/phan_cong.md T3.3): policy value with CI, paired differences, Qini / AUUC.
+"""Evaluation metrics: policy value with CI, paired differences, Qini / AUUC.
 
 Policy value comes from ``results/policy_results`` (one row per seed). Standard
 errors are over seeds; the normal-approximation CI uses ``z``; a bootstrap CI
@@ -95,7 +95,7 @@ def t_quantile(p: float, df: int) -> float:
 
 
 def theta_star_set(policy_results: pd.DataFrame, *, metric: str = "N_completed", alpha: float = 0.05) -> pd.DataFrame:
-    """Which thetas of a sweep are statistically as good as the best one (decisions T-31).
+    """Which thetas of a sweep are statistically as good as the best one.
 
     Multiple comparisons with the best: for every theta, the paired difference ``best - theta`` by
     seed (common random numbers), its SE, and a simultaneous one-sided lower bound ``gap_lo`` =
@@ -173,7 +173,7 @@ def sweep_regret(policy_results: pd.DataFrame, theta_hat: float, *, metric: str 
                  alpha: float = 0.05) -> dict:
     """Regret of running pi_theta at ``theta_hat`` instead of the sweep's best theta: ``N(best) - N(theta_hat)``.
 
-    This, not ``|theta_hat - theta*|``, scores an estimated threshold (D1: the criterion is N):
+    This, not ``|theta_hat - theta*|``, scores an estimated threshold (the criterion is N):
     inside a plateau the regret is about 0 whatever the distance. On a grid point it is the paired
     difference by seed; between grid points each seed's curve is interpolated linearly in theta;
     outside the grid it is an error. The CI is a two-sided Student-t interval for this one

@@ -1,4 +1,4 @@
-"""Task H5.3: analysis/tension.py (choice of the supply-tension indicator, decisions H-22)."""
+"""analysis/tension.py: choice of the supply-tension indicator."""
 
 import numpy as np
 import pandas as pd

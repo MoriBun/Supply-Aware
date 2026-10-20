@@ -1,12 +1,12 @@
-"""Keyed random streams for common random numbers (docs/spec.md §5).
+"""Keyed random streams for common random numbers.
 
 Every random draw goes through ``rng.rng_for(stream, *key)``. A generator is a
 pure function of (seed, stream, key), so switching policy cannot shift the
 random numbers of any session, order, driver or (cell, slot).
 
 This module also fixes the CRN contract pieces that several modules share:
-the stable ``session_id`` (spec §2, decisions T-06), the order in which a
-session's pre-drawn numbers are taken from its generator (spec §4.2, T-07) and
+the stable ``session_id``, the order in which a
+session's pre-drawn numbers are taken from its generator and
 the integer ``kind`` codes of the CELLSLOT and SHOCK streams.
 """
 
@@ -31,7 +31,7 @@ class Stream(enum.IntEnum):
     RIDER = 5          # key (rider_id): arm of rider-level A/B
     DRIVER = 6         # key (driver_id, counter): repositioning
     SESSION_BATCH = 7  # key (day, tick_of_day, cell): optional batched SESSION draws
-    SHOCK = 8          # key (kind, day, ...): day-level shock schedule, same under every policy (H-30)
+    SHOCK = 8          # key (kind, day, ...): day-level shock schedule, same under every policy
 
 
 class CellSlotKind(enum.IntEnum):
@@ -42,7 +42,7 @@ class CellSlotKind(enum.IntEnum):
 
 
 class ShockKind(enum.IntEnum):
-    """``kind`` codes for the SHOCK stream (decisions H-30; part of the CRN contract: never renumber).
+    """``kind`` codes for the SHOCK stream (part of the CRN contract: never renumber).
 
     Keys hold the day and, for per-venue or per-driver draws, an index; never anything
     that depends on the policy, so every policy meets the same shocks.
@@ -102,10 +102,10 @@ class Rng:
 
 
 # ---------------------------------------------------------------------------
-# Stable session ids (spec §2, decisions T-06)
+# Stable session ids
 # ---------------------------------------------------------------------------
 
-MAX_SESSIONS_PER_CELL_TICK = 1000  # spec §2: k < 1000, otherwise raise
+MAX_SESSIONS_PER_CELL_TICK = 1000  # k < 1000, otherwise raise
 
 
 def ticks_per_day(tick_s: int) -> int:
@@ -148,7 +148,7 @@ def split_session_id(session_id: int, *, n_cells: int, ticks_per_day: int) -> tu
 
 
 # ---------------------------------------------------------------------------
-# Pre-drawn numbers of a session (spec §4.2, decisions T-07)
+# Pre-drawn numbers of a session
 # ---------------------------------------------------------------------------
 
 # The SESSION generator of a session is consumed in exactly this order, always in

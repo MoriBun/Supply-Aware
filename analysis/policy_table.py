@@ -1,12 +1,12 @@
-"""N(pi), V(pi) of several voucher policies under the same budget B (task T5.1, docs/phan_cong.md S5).
+"""N(pi), V(pi) of several voucher policies under the same budget B.
 
 ``python -m analysis.policy_table --config config/default.yaml [--config overlay.yaml] [--set key=value ...]
 [--spec "label=tau_x,policy=threshold,theta=0,score_fn=analysis.scores:tau_x_baseline" ...] [--n-seeds 30]
 --out runs/s5/policy_table``
 
-Every policy runs on the same seeds (common random numbers, spec §5), and every policy but
-``all_off`` under the same B per budget period, from the all_on pilot (spec §4.3). A
-threshold policy gets kappa-auto at its theta (decisions H-21), so it spends B too and
+Every policy runs on the same seeds (common random numbers), and every policy but
+``all_off`` under the same B per budget period, from the all_on pilot. A
+threshold policy gets kappa-auto at its theta, so it spends B too and
 policies differ only in who gets the vouchers. Without ``--spec`` the default list of
 :data:`DEFAULT_SPECS` runs.
 
@@ -53,15 +53,16 @@ class PolicySpec:
 
 
 # All but all_off spend B. Threshold rows at theta = 0 cut no cell, so they differ only in the rider score:
-# the H4.2 table baselines (ties broken at random, decisions T-33 (e)) and the DR-learner scores of H5.2
-# (decisions H-24; "_all" = fitted on all legacy sessions, plain = explore slice only). tau_hat(x, s) rows run
-# with the cell scope, the slack its model was trained on. pi_theta_hat rows: theta_hat (A) and (B) of H5.3 on
-# the ring1 scope (decisions H-25) with tau_hat(x) per dollar, which does not read s.
+# the table baselines of analysis.scores (ties broken at random) and the DR-learner scores of analysis.uplift
+# ("_all" = fitted on all legacy sessions, plain = explore slice only). tau_hat(x, s) rows run
+# with the cell scope, the slack its model was trained on. pi_* rows: the thresholds of
+# analysis.tension_curve on the ring1 / city scope with tau_hat(x) per 1.000đ, which does not read s;
+# hour_off_* rows: the hour-off rule of analysis.hour_rule.
 DR = "analysis.uplift:"
 HOUR = "analysis.hour_rule:"
-# Thresholds of S9 (task H9.3, decisions T-45; runs/s9/<world>/summary.json): the tension method's zero crossing
-# (theta_hat_tension, ring1) and the S5 hour method with the budget (theta_hat_B) on the ring1 and city scopes.
-# Hard-coded like the 0.25 / 5.0 of H5.3 so the table is reproducible from the committed code alone.
+# Thresholds from analysis.tension_curve (runs/s9/<world>/summary.json): the tension method's zero crossing
+# (theta_hat_tension, ring1) and the hour method with the budget (theta_hat_B) on the ring1 and city scopes.
+# Hard-coded so the table is reproducible from the committed code alone.
 S9_THRESHOLDS = {
     "w0": {"tension_ring1": 0.0, "hourB_ring1": 2.3, "hourB_city": 1.6},
     "w1": {"tension_ring1": 0.0, "hourB_ring1": 2.15, "hourB_city": 2.1},
@@ -69,13 +70,13 @@ S9_THRESHOLDS = {
 
 
 def specs_for_world(world: str) -> tuple[PolicySpec, ...]:
-    """The policy table of T10.1 (plan v3 §4.1, Q4–6, Q21) for world ``w0`` or ``w1``.
+    """The policy table for world ``w0`` or ``w1``.
 
-    Rows: no voucher; voucher for everyone under B; the rider tiers of S5 (random, heuristic, baseline tables, DR
-    scores now per 1.000đ, task H9.1); the threshold-by-tension policy of H9.3 (``ring1``, theta_hat_tension);
-    the S5 threshold-by-hour policy with the budget (theta_hat_B) on ``ring1`` and on the ``city`` scope (Q6);
-    the fixed hour-off rule of H9.4 (random tier and DR tier); the oracle (T-40, upper bound of per-rider
-    policies, KN 3.1). Every threshold row uses the DR per-1.000đ score of its world.
+    Rows: no voucher; voucher for everyone under B; the rider tiers (random, heuristic, baseline tables, DR
+    scores, raw and per 1.000đ); the threshold-by-tension policy (``ring1``, theta_hat_tension);
+    the threshold-by-hour policy with the budget (theta_hat_B) on ``ring1`` and on the ``city`` scope;
+    the fixed hour-off rule of ``analysis.hour_rule`` (random tier and DR tier); the oracle (upper bound of
+    per-rider policies). Every threshold row uses the DR per-1.000đ score of its world.
     """
     if world not in S9_THRESHOLDS:
         raise ValueError(f"world must be one of {sorted(S9_THRESHOLDS)}, got {world!r}")
@@ -110,7 +111,7 @@ REFERENCE = "all_on_B"
 
 def parse_spec(text: str) -> PolicySpec:
     """``label=...,policy=...[,theta=...][,score_fn=...][,scope=cell|ring1|city][,budget=true|false]`` (score_fn may contain ':';
-    ``score_fn=oracle`` is the fixed-market oracle of decisions T-40/H-42, built by ``make_policy`` with the hidden view)."""
+    ``score_fn=oracle`` is the fixed-market oracle, built by ``make_policy`` with the hidden view)."""
     fields: dict[str, str] = {}
     for part in text.split(","):
         key, sep, value = part.partition("=")
@@ -137,7 +138,7 @@ def configure(cfg: Config, spec: PolicySpec) -> Config:
         if spec.score_fn:
             th = dataclasses.replace(th, score_fn=spec.score_fn)
         if spec.scope:
-            if spec.scope not in ("cell", "ring1", "city"):   # city: one slack for the whole city (T-40, S10 T10.1)
+            if spec.scope not in ("cell", "ring1", "city"):   # city: one slack for the whole city
                 raise ValueError(f"spec {spec.label!r}: scope must be cell, ring1 or city, got {spec.scope!r}")
             th = dataclasses.replace(th, scope=spec.scope)
         out = dataclasses.replace(out, policy=dataclasses.replace(out.policy, threshold=th))
@@ -150,7 +151,8 @@ def run_policy_table(cfg: Config, specs, out_dir: Path, *, n_seeds: int | None =
     """Run every spec on the same seeds under the same B; write the tables and return the summary.
 
     ``log_level = "full"`` also keeps the session and order tables of every run under
-    ``out_dir/runs/<run_id>`` (like ``sim run --log-level full``), for per-slot analyses (S10 G10, H2).
+    ``out_dir/runs/<run_id>`` (like ``sim run --log-level full``), for per-slot analyses
+    (:func:`analysis.evaluation.shock_split_table`).
     """
     specs = list(specs)
     labels = [s.label for s in specs]
@@ -232,7 +234,7 @@ def summarize(runs: pd.DataFrame, *, reference: str = REFERENCE, order=None) -> 
 
 
 def paired_steps(runs: pd.DataFrame, steps, *, metric: str = "N_completed") -> pd.DataFrame:
-    """``metric(to) - metric(from)`` paired by seed for each ``(from, to)`` label pair (rungs of a ladder, H-22 i)."""
+    """``metric(to) - metric(from)`` paired by seed for each ``(from, to)`` label pair (rungs of a ladder)."""
     wide = runs.pivot(index="seed", columns="label", values=metric)
     rows = []
     for a, b in steps:
@@ -254,7 +256,7 @@ def _vn(x: float, digits: int = 1) -> str:
 
 
 def markdown(summary: pd.DataFrame) -> str:
-    """The table as Markdown rows for docs/log.md and the report."""
+    """The table as Markdown rows."""
     ref = summary.attrs.get("reference", REFERENCE)
     head = (f"| Chính sách | θ | κ | N (± SE) | V (đ, ± SE) | Chi / B | % (ô, slot) tắt | N − {ref} (± SE) |\n"
             "|---|---|---|---|---|---|---|---|")
@@ -274,9 +276,9 @@ def main(argv=None) -> int:
     parser.add_argument("--set", dest="overrides", action="append", default=[], metavar="KEY=VALUE")
     parser.add_argument("--spec", action="append", default=[], metavar="SPEC", help="see parse_spec; repeatable")
     parser.add_argument("--reference", default=REFERENCE)
-    parser.add_argument("--n-seeds", type=int, default=None, help="default: sweep.n_seeds (decisions T-22)")
+    parser.add_argument("--n-seeds", type=int, default=None, help="default: sweep.n_seeds")
     parser.add_argument("--world", choices=sorted(S9_THRESHOLDS), default="w0",
-                        help="default spec list of this world (score models, S9 thresholds, hour rule); ignored with --spec")
+                        help="default specs of this world (score models, thresholds, hour rule); ignored with --spec")
     parser.add_argument("--log-level", choices=("minimal", "full"), default="minimal",
                         help="full also keeps the session and order tables of every run (out/runs/<run_id>)")
     parser.add_argument("--out", type=Path, required=True)

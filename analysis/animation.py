@@ -1,5 +1,4 @@
-"""Animation of a policy change on the hex grid (tasks T10.10, T11.1; mentor guide
-``huong-dan-animation-chinh-sach.md`` §4–§6, §8).
+"""Animation of a policy change on the hex grid.
 
 Two runs of the same seed and the same budget B, both with ``--log-level full``: the old
 policy (``all_on`` under B) and the new one (recommended policy). One frame per 15-minute
@@ -8,7 +7,7 @@ slot of a chosen window (5h–9h by default) with four layers:
 1. Δ requests per cell (new − old), from ``market/slot_snapshots.n_requests``;
 2. Δ completed trips per cell **by request slot** (new − old), recomputed from
    ``observed/orders`` because ``slot_snapshots.n_completed`` counts by drop-off time
-   (T-15) and would lag the request map by one or two slots;
+   and would lag the request map by one or two slots;
 3. slack of the new policy in the slot (concurrent slack, clipped at 3 for display) with
    the cells switched off hatched (``promo_on`` of the new policy);
 4. below: cumulative ΔN over the window, mean over seeds with a 95% band, and a cursor.
@@ -19,7 +18,7 @@ and fixed for the whole clip (``vmax = max |Δ|`` over the frames), orange–neu
 (colour-vision safe, the palette of ``analysis.plots``). Nothing here reads ``hidden/``
 or touches ``sim/``.
 
-Check (guide §8): the sum of Δ completed-by-request-slot over the **whole evaluation
+Check: the sum of Δ completed-by-request-slot over the **whole evaluation
 window** equals ``N(new) − N(old)`` of ``results/policy_results`` for every seed;
 :func:`check_totals` raises otherwise.
 
@@ -77,14 +76,14 @@ def pivot_counts(slot: np.ndarray, cell: np.ndarray, n_slots: int, n_cells: int,
 
 
 def requests_by_slot(snapshots: pd.DataFrame, n_slots: int, n_cells: int) -> np.ndarray:
-    """``n_requests`` of ``market/slot_snapshots`` as ``[n_slots, n_cells]`` (counted at open time, T-15)."""
+    """``n_requests`` of ``market/slot_snapshots`` as ``[n_slots, n_cells]`` (counted at open time)."""
     return pivot_counts(snapshots["slot"].to_numpy(), snapshots["cell"].to_numpy(), n_slots, n_cells,
                         snapshots["n_requests"].to_numpy())
 
 
 def completed_by_request_slot(orders: pd.DataFrame, slot_s: float, n_slots: int, n_cells: int, *,
                               in_window_only: bool = False) -> np.ndarray:
-    """Completed orders counted at their **request** slot and pickup cell (guide §4), ``[n_slots, n_cells]``.
+    """Completed orders counted at their **request** slot and pickup cell, ``[n_slots, n_cells]``.
 
     ``in_window_only`` keeps the orders whose request time is in the evaluation window: the
     sum of that matrix is exactly ``N(π)`` of ``results/policy_results``.
@@ -239,7 +238,7 @@ def load_pairs(old_dirs, new_dirs, *, display_seed_index: int = 0) -> PairDelta:
 
 
 def check_totals(pair: PairDelta) -> pd.DataFrame:
-    """Guide §8: Σ Δ completed-by-request-slot over the whole evaluation window = N(new) − N(old), per seed.
+    """Σ Δ completed-by-request-slot over the whole evaluation window = N(new) − N(old), per seed.
 
     Returns one row per seed; raises ``AssertionError`` on the first mismatch.
     """
@@ -262,7 +261,7 @@ def check_totals(pair: PairDelta) -> pd.DataFrame:
 
 
 def frame_slots(pair: PairDelta, hour_from: int = 5, hour_to: int = 9, *, day: int = 0) -> np.ndarray:
-    """Slot indices of ``day`` with ``hour_from <= hour < hour_to`` (guide §5: one window, one story)."""
+    """Slot indices of ``day`` with ``hour_from <= hour < hour_to`` (one window, one story)."""
     slots = np.arange(pair.n_slots)
     hours = np.array([pair.hour_of_slot(s) for s in slots])
     days = np.array([pair.day_of_slot(s) for s in slots])
@@ -295,7 +294,7 @@ def slot_label(pair: PairDelta, slot: int) -> str:
 
 
 def default_caption(pair: PairDelta, slot: int) -> str:
-    """One sentence per frame from the signs of Σ Δ requests and Σ Δ completed (guide §5)."""
+    """One sentence per frame from the signs of Σ Δ requests and Σ Δ completed."""
     d_req, d_done = float(pair.d_req[slot].sum()), float(pair.d_done[slot].sum())
     n_off = int(pair.promo_off[slot].sum())
     off = f"{n_off}/{pair.n_cells} ô tắt voucher" if n_off else "không ô nào bị tắt"
@@ -344,7 +343,7 @@ def animate(pair: PairDelta, slots: np.ndarray, out_path: Path | str, *, caption
     """Write the GIF: three hex maps and the cumulative ΔN below, one frame per slot of ``slots``.
 
     ``captions`` maps a slot index to the sentence shown under the maps; missing slots get
-    :func:`default_caption`. The last frame is repeated for ``hold_s`` seconds (guide §5).
+    :func:`default_caption`. The last frame is repeated for ``hold_s`` seconds.
     """
     from matplotlib.animation import FuncAnimation, PillowWriter
     from matplotlib.cm import ScalarMappable
@@ -437,7 +436,7 @@ def animate(pair: PairDelta, slots: np.ndarray, out_path: Path | str, *, caption
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Hex-grid animation of a policy change (mentor guide §6).")
+    ap = argparse.ArgumentParser(description="Hex-grid animation of a policy change.")
     ap.add_argument("--old", nargs="+", required=True, type=Path, help="full-log run dirs of the old policy, one per seed")
     ap.add_argument("--new", nargs="+", required=True, type=Path, help="full-log run dirs of the new policy, one per seed")
     ap.add_argument("--out", required=True, type=Path, help="output .gif")
@@ -452,7 +451,7 @@ def main(argv: list[str] | None = None) -> int:
     totals = check_totals(pair)
     print(totals.to_string(index=False))
     if not (totals["delta_N"] == totals["delta_from_orders"]).all():
-        raise SystemExit("guide §8: Σ Δ completed over the window must equal N(new) − N(old) of policy_results")
+        raise SystemExit("Σ Δ completed over the window must equal N(new) − N(old) of policy_results")
     slots = frame_slots(pair, a.hours[0], a.hours[1], day=a.day)
     path = animate(pair, slots, a.out, fps=a.fps, hold_s=a.hold, title=a.title)
     w = window_delta(pair)

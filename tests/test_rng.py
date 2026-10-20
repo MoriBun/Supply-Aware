@@ -1,4 +1,4 @@
-"""CRN streams (docs/spec.md §5, docs/plan.md P0) and hard rule 4 (no global randomness)."""
+"""CRN streams (sim/rng.py) and hard rule 4 (no global randomness)."""
 
 import ast
 from pathlib import Path
@@ -82,13 +82,12 @@ def test_from_config(tiny_cfg):
 
 def test_hash64_is_pinned():
     # Changing the hash silently changes every random number, so generated
-    # datasets would no longer be reproducible. Update only on purpose and log
-    # the change in docs/decisions.md.
+    # datasets would no longer be reproducible. Update only on purpose.
     assert hash64(0, 3, 42) == 16375947467241191322
     assert hash64(20260930, 1, 0) == 12381375145982931506
 
 
-# --- session ids (spec §2, decisions T-06) ----------------------------------------
+# --- session ids ------------------------------------------------------------------
 
 
 def test_ticks_per_day():
@@ -101,7 +100,7 @@ def test_ticks_per_day():
 def test_session_id_formula_and_roundtrip():
     from sim.rng import make_session_id, split_session_id
     sid = make_session_id(2, 100, 5, 7, n_cells=37, ticks_per_day=1440)
-    assert sid == ((2 * 1440 + 100) * 37 + 5) * 1000 + 7     # spec §2 with ticks_per_day = 1440
+    assert sid == ((2 * 1440 + 100) * 37 + 5) * 1000 + 7     # with ticks_per_day = 1440
     assert split_session_id(sid, n_cells=37, ticks_per_day=1440) == (2, 100, 5, 7)
     later = make_session_id(2, 101, 0, 0, n_cells=37, ticks_per_day=1440)
     assert later > make_session_id(2, 100, 36, 999, n_cells=37, ticks_per_day=1440)   # time order is id order
@@ -125,7 +124,7 @@ def test_session_ids_for_tick():
         session_ids_for_tick(1, 5, 3, 1001, n_cells=7, ticks_per_day=1440)
 
 
-# --- pre-drawn numbers (spec §4.2, decisions T-07) ------------------------------------
+# --- pre-drawn numbers ----------------------------------------------------------------
 
 
 def test_session_draw_order_is_pinned():
@@ -214,8 +213,8 @@ def test_no_global_randomness_in_sim(path):
     )
 
 
-def test_s7_contract_stream_and_kind_codes_are_fixed():
-    # B9 (decisions H-30): codes are part of the CRN contract; never renumber.
+def test_shock_stream_and_kind_codes_are_fixed():
+    # Codes are part of the CRN contract; never renumber.
     from sim.rng import ShockKind
     assert Stream.SHOCK == 8 and [s.value for s in Stream] == list(range(1, 9))
     assert {k.name: k.value for k in ShockKind} == {"DAY_DEMAND": 1, "EVENT": 2, "RAIN": 3, "ATTEND": 4, "JITTER": 5}

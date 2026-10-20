@@ -1,4 +1,4 @@
-"""Task H5.3: analysis/theta.py (theta-hat without and with the budget, decisions H-25)."""
+"""analysis/theta.py: theta-hat without and with the budget."""
 
 import numpy as np
 import pandas as pd
@@ -58,7 +58,7 @@ def test_theta_hat_cuts_the_harmful_hours_only():
     assert r["theta_hat_B"] == r["theta_hat_A"]                                  # budget never binds: same rule
 
 
-# --- harm by hour: voucher for everyone against voucher for no one (H6.2) -------------------------
+# --- harm by hour: voucher for everyone against voucher for no one --------------------------------
 
 
 def test_hour_table_gives_the_bootstrap_interval():

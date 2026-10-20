@@ -1,4 +1,4 @@
-"""P4 on the real engine (docs/phan_cong.md T3.1) and acceptance A2 (docs/tests.md §3).
+"""Budget and policies on the real engine, and acceptance A2 (common random numbers).
 
 Budget: the invariant holds in every tick of a day under all_on with B, vouchers are released or
 settled according to the order's fate, every budget period starts afresh, and B comes from the
@@ -32,7 +32,7 @@ COMPLETED, ABANDONED, CANCELLED, TRUNCATED = (int(OrderStatus[n]) for n in ("COM
 POLICIES = ("legacy", "threshold", "experiment")
 
 
-# --- T3.1: budget on the real engine ----------------------------------------------------------
+# --- budget on the real engine ----------------------------------------------------------------
 
 
 @pytest.fixture(scope="module")
@@ -141,7 +141,7 @@ def test_every_budget_period_starts_with_a_fresh_budget():
     assert res.voucher_spent_vnd == pytest.approx(res.spent_by_period_vnd.sum(), abs=0.05)
 
 
-# --- T3.1: smoke day with every policy -------------------------------------------------------
+# --- smoke day with every policy -------------------------------------------------------------
 
 
 @pytest.fixture(scope="module")
@@ -222,7 +222,7 @@ def test_experiment_switchback_fields(policy_days):
     assert (s.col("cell_propensity") == np.float32(cfg.experiment.p_on)).all()
 
 
-# --- A2 (docs/tests.md §3): common random numbers ------------------------------------------------
+# --- A2: common random numbers -------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("policy", POLICIES)
@@ -248,9 +248,8 @@ def test_a2c_policies_face_the_same_sessions(policy_days):
             np.testing.assert_array_equal(other.col(col), base.col(col), err_msg=f"{name}.{col}")
 
 
-# --- slow acceptance on default.yaml (task T4.2): kappa-auto, A2(b), A3 -----------------------
-# Run with: pytest -q -m slow tests/test_acceptance.py. The measuring functions are also what the
-# numbers in docs/log.md come from.
+# --- slow acceptance on default.yaml: kappa-auto, A2(b), A3 -----------------------------------
+# Run with: pytest -q -m slow tests/test_acceptance.py.
 
 
 def threshold_jobs(cfg, theta: float, seeds, *, hysteresis_h: float | None = None):
@@ -268,7 +267,7 @@ def threshold_jobs(cfg, theta: float, seeds, *, hysteresis_h: float | None = Non
 def kappa_auto_spend(cfg, n_seeds: int = 3) -> dict:
     """Spend of the default threshold policy with kappa-auto, relative to B per period.
 
-    ``ratio``: spend under B with the hard stop. Decisions H-21 (d) adds two numbers: ``ratio_unblocked``,
+    ``ratio``: spend under B with the hard stop. Two more numbers: ``ratio_unblocked``,
     the same seeds and kappa without the hard stop, and ``share_blocked``, the share of the vouchers the
     policy meant to give (in the window) that the hard stop blocked.
     """
@@ -319,9 +318,9 @@ def a3_switches(cfg, hysteresis_h: float, n_seeds: int = 5, theta: float = 0.35)
 
 @pytest.mark.slow
 def test_kappa_auto_spend_is_between_85_and_100_percent_of_budget():
-    # docs/tests.md "Chính sách": with kappa-auto the evaluation run spends within [0.85 B, 1.0 B].
-    # H-21 (d): the spend without the hard stop and the share of vouchers blocked are reported (printed and
-    # in docs/log.md); tests.md sets no pass range for them.
+    # With kappa-auto the evaluation run spends within [0.85 B, 1.0 B].
+    # The spend without the hard stop and the share of vouchers blocked are only reported (printed); no
+    # pass range is set for them.
     m = kappa_auto_spend(load_config(DEFAULT))
     print("kappa-auto:", m)
     assert np.isfinite(m["kappa"]) and m["budget"] > 0
@@ -337,7 +336,7 @@ def test_a2b_common_random_numbers_halve_the_variance_of_the_policy_difference()
 
 @pytest.mark.slow
 def test_a3_switches_per_cell_day_and_hysteresis():
-    # Informational (docs/tests.md A3): report the switches; when the median exceeds 12 per cell and day,
+    # Informational (A3): report the switches; when the median exceeds 12 per cell and day,
     # compare with h = 0.1. The only property asserted is that hysteresis reduces switching.
     cfg = load_config(DEFAULT)
     plain = a3_switches(cfg, 0.0)

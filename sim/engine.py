@@ -1,10 +1,7 @@
-"""Tick loop: the 10 ordered steps of spec §4.0, warm-up / window / cool-down, and ``RunResult``.
+"""Tick loop: the 10 ordered steps, warm-up / window / cool-down, and ``RunResult``.
 
-Spec: docs/spec.md §4.0, §4.13, §8. Milestone: P2 (task H2.4).
-
-Sprint-0 contract: ``run(cfg, world, policy, rng, ...) -> RunResult``; N(pi) and
-V(pi) are computed here and nowhere else; each step is ``fn(ctx, t)``. The loop
-below is final; the step bodies are stubs until their tasks land.
+Contract: ``run(cfg, world, policy, rng, ...) -> RunResult``; N(pi) and
+V(pi) are computed here and nowhere else; each step is ``fn(ctx, t)``.
 """
 
 from __future__ import annotations
@@ -49,7 +46,7 @@ class RunResult:
     mean_pickup_eta_min: float
     share_cells_off: float
     n_switches_per_cell_day: float
-    mean_slack: float               # sum(idle x tick) / sum(enroute x tick) over the window (T-15)
+    mean_slack: float               # sum(idle x tick) / sum(enroute x tick) over the window
     completed_per_h: float
     requests_per_h: float
     abandon_rate: float
@@ -69,18 +66,18 @@ class RunResult:
     sessions: SessionBuffer | None = None      # log_level = "full" only
     orders: OrderBuffer | None = None          # log_level = "full" only
     snapshots: list | None = None              # log_level = "full" only
-    shocks: dict | None = None                 # rows of meta/shocks (sim.shocks.ShockSchedule.table), H7.7
+    shocks: dict | None = None                 # rows of meta/shocks (sim.shocks.ShockSchedule.table)
 
 
-# S7 contract keys (decisions H-29, H-30) whose behaviour is not implemented yet: refuse rather than
-# silently run the old model. Each task removed its line when it implemented the key; empty since H7.8.
+# Config keys of the contract whose behaviour is not implemented yet: refuse rather than silently run
+# the old model. Each entry is removed once its key is implemented; currently empty.
 _NOT_YET: tuple = ()
 
 
 def _check_contract_keys(cfg: Config) -> None:
     for pending, what in _NOT_YET:
         if pending(cfg):
-            raise NotImplementedError(f"{what} is part of the S7 contract but not implemented yet")
+            raise NotImplementedError(f"{what} is part of the config contract but not implemented yet")
 
 
 def build_context(cfg: Config, world: World, policy: Policy, rng: Rng, *, budget_vnd: float | None = None,

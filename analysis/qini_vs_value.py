@@ -1,23 +1,24 @@
-"""Qini against policy value: a score can rank uplift better and still give fewer trips under B (task T5.2).
+"""Qini against policy value: a score can rank uplift better and still give fewer trips under B.
 
 ``python -m analysis.qini_vs_value --data runs/b7a/rider_ab_28d --table runs/s5/policy_table
 [--outcome completed] [--n-boot 200] [--out runs/s5/qini_vs_value]``
 
 Qini is computed the way an uplift team would: on randomized data (default the rider-level A/B
-of B7a, which none of the H4.2 baselines was fitted on), with the session's own outcome. Each
-score is the policy's own ``score_fn`` applied to the logged sessions: a ``SessionBatch`` built
-from observed columns only, and ``s_hat`` = the cell's slack in the previous slot, as the
-policy would have seen it. Confidence intervals resample riders, the unit randomized in that
-data. N(pi) comes from the policy table of task T5.1 (threshold policy at theta = 0 with that
-score, kappa-auto, budget B), and differences are paired by seed.
+``runs/b7a/rider_ab_28d``, which none of the ``analysis.scores`` baselines was fitted on), with
+the session's own outcome. Each score is the policy's own ``score_fn`` applied to the logged
+sessions: a ``SessionBatch`` built from observed columns only, and ``s_hat`` = the cell's slack
+in the previous slot, as the policy would have seen it. Confidence intervals resample riders,
+the unit randomized in that data. N(pi) comes from the policy table of ``analysis.policy_table``
+(threshold policy at theta = 0 with that score, kappa-auto, budget B), and differences are
+paired by seed.
 
 A pair (a, b) is an example for the acceptance criterion "Qini higher but N lower" when the
 Qini of a is higher than the Qini of b and N(a) is lower than N(b), both with 95% intervals that
-exclude 0 (decisions T-33).
+exclude 0.
 
 With ``--outcome completed`` it also writes ``offer_efficiency.parquet`` (:func:`offer_efficiency`):
 the sessions each score offers at its own kappa and the extra trips per 100.000đ of that set measured
-on the randomized data, to tell a cost effect from a supply effect (decisions T-36).
+on the randomized data, to tell a cost effect from a supply effect.
 """
 
 from __future__ import annotations
@@ -100,7 +101,7 @@ class RankedSessions:
 
         With unit weights it equals ``qini_auuc(y, t, score)["qini_coef"]``: area under
         ``Q(k) = Y_T(k) - Y_C(k) N_T(k) / N_C(k)`` over the share targeted, minus the area of the
-        straight line to the end point (T-27).
+        straight line to the end point.
         """
         w = np.ones(len(self.y)) if weights is None else np.asarray(weights, dtype=np.float64)[self.order]
         if len(self.ends) == 0:
@@ -200,12 +201,12 @@ def offer_efficiency(data: dict, scored: dict[str, np.ndarray], kappas: dict[str
     """Who each score offers on the randomized data, and what offering them buys per 100.000đ.
 
     A session counts as offered when its score is >= the kappa that kappa-auto gave this score in
-    the T5.1 table (theta = 0, every cell on). Within the offered set, the randomization gives the
+    the policy table (theta = 0, every cell on). Within the offered set, the randomization gives the
     individual-level effect: ``q1`` / ``q0`` = completion rate with / without the voucher. A voucher
     is paid only on a completed trip, so the cost of an offer is ``voucher x q1`` and the extra
     trips per đồng are ``(q1 - q0) / (voucher x q1)``, reported per 100.000đ. These numbers hold the market fixed (no
     competition for drivers), so if they rank the scores like N under B does, the gap between
-    Qini and N is a cost effect, not a supply effect (task T5.2). ``data["y"]`` must be
+    Qini and N is a cost effect, not a supply effect. ``data["y"]`` must be
     ``completed``.
     """
     s, y, t = data["sessions"], np.asarray(data["y"], dtype=np.float64), np.asarray(data["t"], dtype=bool)
@@ -231,7 +232,7 @@ def offer_efficiency(data: dict, scored: dict[str, np.ndarray], kappas: dict[str
 
 
 def policy_runs(table_dir: Path) -> pd.DataFrame:
-    """Per-seed results of the T5.1 policy table, with their labels."""
+    """Per-seed results of a policy table (``analysis.policy_table``), with their labels."""
     runs = pd.read_parquet(Path(table_dir) / "results" / "policy_results.parquet")
     labels = pd.read_parquet(Path(table_dir) / "results" / "policy_labels.parquet")
     return runs.merge(labels, on="run_id")
@@ -307,8 +308,8 @@ def main(argv=None) -> int:
 
     runs = policy_runs(args.table)
     at_zero = runs[(runs["policy"] == "threshold") & (runs["theta"] == 0.0)].groupby("label")
-    # The oracle reads hidden coefficients and is built only inside the simulator (T-40): it has no
-    # score function to replay on logged sessions, so it is left out of the Qini comparison (S10 T10.4).
+    # The oracle reads hidden coefficients and is built only inside the simulator: it has no
+    # score function to replay on logged sessions, so it is left out of the Qini comparison.
     scores = {label: fn for label, fn in at_zero["score_fn"].first().items() if not is_oracle(fn)}
     data = randomized_sessions(args.data, outcome=args.outcome, explore_only=args.explore_only)
     scored = score_all(data, scores)

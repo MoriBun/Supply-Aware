@@ -1,7 +1,5 @@
 """M2 DemandGenerator: Poisson sessions per (cell, tick), rider and destination choice, pre-drawn numbers.
 
-Spec: docs/spec.md §4.2. Milestone: P1 (task H1.2).
-
 Contract: ``spawn`` appends this tick's sessions to ``ctx.sessions`` (columns of
 step "spawn" in ``state.SESSION_COLUMNS``) and sets ``ctx.tick_sessions`` to
 their row range. Session ids come from ``rng.session_ids_for_tick``; the SESSION
@@ -40,7 +38,7 @@ def spawn(ctx: SimContext, t: float) -> None:
     # Session counts: one DEMAND generator per (day, tick_of_day, cell). A zero rate needs no draw.
     lam = session_rate(cfg, world.cell_weight, hour)
     if ctx.shocks is not None:
-        lam = lam * ctx.shocks.demand_factor(t)     # day factor, rain, events (H7.4); same for every policy
+        lam = lam * ctx.shocks.demand_factor(t)     # day factor, rain, events; same for every policy
     counts = np.zeros(n_cells, dtype=np.int64)
     for cell in np.flatnonzero(lam > 0):
         counts[cell] = rng.rng_for(Stream.DEMAND, day, tick_of_day, int(cell)).poisson(lam[cell])
@@ -85,13 +83,13 @@ def spawn(ctx: SimContext, t: float) -> None:
     for j, name in enumerate(_SCALAR_COLUMNS):
         getattr(sessions, name)[rows] = scalars[:, j]
 
-    ctx.slot_counters.n_sessions += counts.astype(ctx.slot_counters.n_sessions.dtype)  # by open time and cell (T-15)
+    ctx.slot_counters.n_sessions += counts.astype(ctx.slot_counters.n_sessions.dtype)  # by open time and cell
     ctx.tick_sessions = (start, stop)
 
 
 def _pick_riders(world, home_cell_share: float, pu_cell: np.ndarray, u_home: np.ndarray,
                  u_rider: np.ndarray) -> np.ndarray:
-    """Rider of each session (spec §4.2).
+    """Rider of each session.
 
     With probability ``home_cell_share`` a rider living in the pickup cell, otherwise
     any rider; inside the chosen group the probability is proportional to ``x_freq``.
@@ -111,7 +109,7 @@ def _pick_riders(world, home_cell_share: float, pu_cell: np.ndarray, u_home: np.
 
 
 def _pick_destinations(world, pu_cell: np.ndarray, u_dest: np.ndarray) -> np.ndarray:
-    """Destination cell: ``P(d | o) ∝ w_d * exp(-D[o, d] / dest_decay_rings)`` (spec §4.2)."""
+    """Destination cell: ``P(d | o) ∝ w_d * exp(-D[o, d] / dest_decay_rings)``."""
     n_cells = world.n_cells
     pos = np.searchsorted(world.tables.dest_cdf, pu_cell + u_dest, side="right") - pu_cell * n_cells
     return np.clip(pos, 0, n_cells - 1)

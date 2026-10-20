@@ -1,8 +1,5 @@
 """M12 Logger: Parquet tables of docs/schema.md split into observed/, hidden/, market/, results/, meta/.
 
-Spec: docs/spec.md §4.12. Milestone: P2 (results and meta tables, tasks T1.4, T2.4), P5 (per-run
-tables, task T3.2).
-
 One run writes under ``out_dir``::
 
     observed/riders, observed/sessions, observed/orders    (what models and policies may read)
@@ -13,8 +10,8 @@ One run writes under ``out_dir``::
 Every table carries ``run_id`` (string) and ``seed`` (int32). Code columns of the
 buffers (``assign_mechanism``, ``status``, ``cancel_reason``,
 ``assign_mechanism_cell``) are written as strings; the pre-drawn session numbers
-are float64 in memory and float32 on disk (decisions T-19, T-20). No column of
-``state.HIDDEN_COLUMNS`` is ever written to observed/ or market/ (T-11), which
+are float64 in memory and float32 on disk. No column of
+``state.HIDDEN_COLUMNS`` is ever written to observed/ or market/, which
 ``tests/test_logger.py::test_no_hidden_leak`` checks on a generated data set.
 """
 
@@ -98,7 +95,7 @@ SNAPSHOT_COLUMNS = {
 }
 assert set(SNAPSHOT_COLUMNS) == set(SNAPSHOT_FIELDS)
 
-# meta/shocks (docs/schema.md, H7.7, decisions H-41): one row per shock of the run, empty without shocks.
+# meta/shocks (docs/schema.md): one row per shock of the run, empty without shocks.
 SHOCKS_COLUMNS: dict[str, str] = {
     "day": "int16", "kind": "string", "cell": "int16", "start_s": "float64", "end_s": "float64",
     "demand_mult": "float32", "ring1_mult": "float32", "speed_mult": "float32", "n_drivers_off": "int32",
@@ -113,7 +110,7 @@ RUN_TABLES: dict[str, tuple[str, dict[str, str]]] = {
     "sessions_hidden": ("hidden", SESSIONS_HIDDEN_COLUMNS),
     "shocks": ("meta", SHOCKS_COLUMNS),
 }
-# Hard rule 3 / T-11, checked once at import: no hidden column in an observed or market table.
+# Hard rule 3, checked once at import: no hidden column in an observed or market table.
 for _name, (_folder, _cols) in RUN_TABLES.items():
     if _folder != "hidden":
         assert not set(_cols) & HIDDEN_COLUMNS, f"hidden column in {_folder}/{_name}"
@@ -161,7 +158,7 @@ def git_sha() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Per-run tables (task T3.2)
+# Per-run tables
 # ---------------------------------------------------------------------------
 
 

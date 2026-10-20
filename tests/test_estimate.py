@@ -1,4 +1,4 @@
-"""Task H4.2: analysis/estimate.py (effect by supply tension, A4, threshold estimate) and analysis/scores.py."""
+"""analysis/estimate.py (effect by supply tension, A4, threshold estimate) and analysis/scores.py."""
 
 import dataclasses
 import json
@@ -21,7 +21,7 @@ from tests.conftest import ROOT
 from tests.fakes import make_batch
 
 B7A = ROOT / "runs" / "b7a"
-S8_W0 = B7A.parent / "s8" / "w0"       # Hanoi-scale VND data (T8.4); the B7a sets use the old USD config
+S8_W0 = B7A.parent / "s8" / "w0"       # Hanoi-scale VND data; the runs/b7a sets use the old USD config
 
 
 def synthetic_frame(effect_of, *, n_units=600, per_unit=60, base=0.15, seed=1) -> pd.DataFrame:
@@ -171,7 +171,7 @@ def test_experiment_frame_from_a_generated_run(tiny_run):
 
 
 def test_stored_config_accepts_a_run_made_before_a_key_was_added(tiny_run):
-    # B7a was generated before policy.threshold.scope / kappa_max_iter existed (decisions T-32, T-35).
+    # runs/b7a was generated before policy.threshold.scope / kappa_max_iter existed.
     out, cfg = tiny_run
     raw = estimate.run_config(load_run(out))
     del raw["policy"]["threshold"]["scope"], raw["policy"]["threshold"]["kappa_max_iter"]
@@ -187,7 +187,7 @@ def test_frame_rejects_a_run_without_experiment(tmp_path):
         experiment_frame(tmp_path)
 
 
-# --- uplift scores (handoff B8) --------------------------------------------------
+# --- uplift scores ---------------------------------------------------------------
 
 
 def explore_data(n=60_000, seed=2):
@@ -258,7 +258,7 @@ def _score_in_worker(spec: str, x_freq: np.ndarray, x_segment: np.ndarray) -> np
 
 @pytest.mark.parametrize("spec", ["analysis.scores:tau_x_baseline", "analysis.scores:tau_per_dollar_baseline"])
 def test_score_functions_load_in_a_spawned_worker(spec):
-    # B8 check: runner workers start with spawn on Windows and only get the score_fn string.
+    # Runner workers start with spawn on Windows and only get the score_fn string.
     x_freq = np.array([0.5, 1.5, 3.0] * 3, dtype=np.float32)
     x_segment = np.repeat([0, 1, 2], 3).astype(np.int8)
     with multiprocessing.get_context("spawn").Pool(1) as pool:
@@ -297,14 +297,15 @@ def test_predict_cli_writes_parquet_without_hidden_columns(tiny_run, tmp_path):
     assert scores.main(["scores", "predict", str(run_dir)]) == 2
 
 
-# --- A4 on the B7a data (informational; docs/tests.md §3) ------------------------
+# --- A4 on the runs/s8/w0 data (informational) -----------------------------------
 
 
 @pytest.mark.slow
-@pytest.mark.skipif(not (S8_W0 / "switchback_c7_28d").exists(), reason="runs/s8/w0 not generated (docs/datasets.md)")
+@pytest.mark.skipif(not (S8_W0 / "switchback_c7_28d").exists(),
+                    reason='runs/s8/w0 not generated (README.md, section "Tái lập kết quả")')
 def test_a4_effect_by_slack_quartile_on_cluster_switchback():
     frame = experiment_frame(S8_W0 / "switchback_c7_28d")
-    table = effect_by_bin(frame, "cell_lag", quantiles=4)              # the moderator docs/tests.md names
+    table = effect_by_bin(frame, "cell_lag", quantiles=4)              # the A4 moderator
     assert len(table) == 4 and (table["n_on"] > 10_000).all() and (table["n_off"] > 10_000).all()
     assert np.isfinite(table[["effect", "ci_lo", "ci_hi"]].to_numpy()).all()
     assert sign_changes(table["effect"]) >= 0                          # reported, not gated

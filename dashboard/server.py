@@ -31,8 +31,8 @@ from dashboard.trace import EVENT_TYPES
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = Path(__file__).resolve().parent / "static"
 
-# Score functions offered in the form: the built-ins, the S5 baselines and the S9 models per 1.000đ
-# (analysis.uplift, decisions T-45; the ``_w1`` models are fitted on W1 data) and the S9 hour-off rules.
+# Score functions offered in the form: the built-ins, the baselines and the models per 1.000đ
+# (analysis.uplift; the ``_w1`` models are fitted on W1 data) and the hour-off rules.
 SCORE_FUNCTIONS: tuple[str, ...] = tuple(BUILTIN_SCORES) + (
     "analysis.score_ties:tau_x_baseline", "analysis.score_ties:tau_per_dollar_baseline",
     "analysis.uplift:tau_x_dr_all_per_kvnd", "analysis.uplift:tau_xs_dr_all_per_kvnd",
@@ -43,7 +43,7 @@ SCORE_FUNCTIONS: tuple[str, ...] = tuple(BUILTIN_SCORES) + (
     "analysis.hour_rule:off_hours_random_w0", "analysis.hour_rule:off_hours_random_w1",
 )
 
-# Worlds of S8 (decisions T-42, T-43; W1 = config/world_w1.yaml): 61 cells (radius 4, H7.1), Hanoi scale, VND.
+# Worlds W0 and W1 (W1 = config/world_w1.yaml): 61 cells (radius 4), Hanoi scale, VND.
 PRESETS: tuple[dict, ...] = (
     {"key": "default", "label": "W0 Hà Nội: 61 ô, 1.150 xe, 1 ngày", "layers": [], "overrides": []},
     {"key": "w1", "label": "W1 Hà Nội + biến động: 61 ô, 1.278 xe, mưa / sự kiện", "layers": ["config/world_w1.yaml"],

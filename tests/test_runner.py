@@ -1,4 +1,4 @@
-"""M13 runner on the fake engine (docs/phan_cong.md T1.4, T2.4; spec §7; decisions T-08, T-22, T-23)."""
+"""Runner (sim/runner.py) on the fake engine."""
 
 import math
 
@@ -48,7 +48,7 @@ def test_seeds_and_with_seed(tiny_cfg):
     assert with_7.meta.run_seed == 7 and with_7.meta.world_seed == tiny_cfg.meta.world_seed
     assert tiny_cfg.meta.run_seed == 0                                        # original untouched
     assert config_hash(with_7) != config_hash(tiny_cfg)
-    assert pilot_seed(tiny_cfg) == 9000 and pilot_seed(with_7) == 9007          # one pilot seed for all thetas (H-21)
+    assert pilot_seed(tiny_cfg) == 9000 and pilot_seed(with_7) == 9007          # one pilot seed for all thetas
     assert with_policy(tiny_cfg, "legacy").policy.name == "legacy" and tiny_cfg.policy.name == "threshold"
     with pytest.raises(ValueError):
         seeds_for(tiny_cfg, 0)
@@ -96,7 +96,7 @@ def test_run_jobs_passes_budget_arguments(tiny_layers):
     assert np.isnan(free.budget_B_vnd) and free.voucher_spent_vnd >= res.voucher_spent_vnd
 
 
-# --- throughput_curve (decisions T-08) ----------------------------------------------------
+# --- throughput_curve ---------------------------------------------------------------------
 
 
 def test_throughput_config_transforms(default_yaml):
@@ -106,7 +106,7 @@ def test_throughput_config_transforms(default_yaml):
     assert t.demand.demand_scale == 2.5 and t.policy.name == "all_off" and t.supply.shift_mode == "always_on"
     assert t.demand.hour_profile == (cfg.demand.hour_profile[h],) * 24
     assert t.space.speed_factor_by_hour == (cfg.space.speed_factor_by_hour[h],) * 24
-    assert t.demand.hour_profile[0] == 1.85 and t.space.speed_factor_by_hour[0] == 0.76     # hour 18 in default.yaml (TomTom, H7.1)
+    assert t.demand.hour_profile[0] == 1.85 and t.space.speed_factor_by_hour[0] == 0.76     # hour 18 (TomTom)
     assert cfg.demand.demand_scale == load_config(default_yaml).demand.demand_scale            # original untouched
     assert cfg.policy.name == "threshold" and cfg.supply.shift_mode == "schedule"
 
@@ -130,7 +130,7 @@ def test_fake_engine_receives_the_throughput_config(default_yaml):
 
 def test_throughput_curve_end_to_end(default_yaml, tmp_path):
     # The fake engine peaks at requests = capacity (demand_scale ~ 3.8 on the Hanoi fleet), so this plumbing test
-    # keeps the 16-level grid of T-08 regardless of the city grid in default.yaml (0.25..2.5 since T-43).
+    # keeps the old 16-level grid regardless of the city grid in default.yaml (0.25..2.5).
     grid = "[0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.25,2.5,2.75,3.0,3.25,3.5,3.75,4.0]"
     cfg = load_config(default_yaml, ["throughput.n_seeds=2", f"throughput.demand_scale_grid={grid}"])
     table = run_throughput_curve(cfg, tmp_path, engine=FAKE, n_procs=1)
@@ -220,7 +220,7 @@ def test_metadata_table_fields(off_cfg):
     assert metadata_table("x", jobs, res, budget_B_vnd=1.5)["budget_B_vnd"][0] == 1.5
 
 
-# --- budget B and kappa (spec §4.3, §6; D12, T-03, T-23) -------------------------------------
+# --- budget B and kappa ----------------------------------------------------------------------
 
 
 def test_kappa_from_pilot():
@@ -238,7 +238,7 @@ def test_kappa_from_pilot():
 
 
 def test_kappa_from_pilot_keeps_tied_scores_together():
-    # The policy offers on score >= kappa, so equal scores (one rider's sessions) are kept or dropped together (T-32).
+    # The policy offers on score >= kappa, so equal scores (one rider's sessions) are kept or dropped together.
     tied = ([0.9, 0.8, 0.8, 0.7], [1.0] * 4, [True] * 4)
     assert kappa_from_pilot(*tied, 2.0) == 0.9            # top 0.8 alone would fit, but both 0.8 sessions are offered
     assert kappa_from_pilot(*tied, 3.0) == 0.8
@@ -278,7 +278,7 @@ def test_kappa_auto_iterates_to_a_fixed_point_under_congestion(tiny_layers, th_c
     def with_max_iter(n):
         return load_config(tiny_layers, SMALL + [f"policy.threshold.kappa_max_iter={n}"])
 
-    # decisions H-21: a pilot at kappa = -inf under-predicts the spend at a higher kappa (fewer offers, less
+    # A pilot at kappa = -inf under-predicts the spend at a higher kappa (fewer offers, less
     # congestion, more completed trips), so kappa is raised until the pilot rerun at kappa fits B x n_periods.
     budget, thetas = 20.0, [0.0, 0.35, 1.0]
     for ka in kappa_auto(th_cfg, thetas, budget, engine=CONGESTED):
@@ -286,7 +286,7 @@ def test_kappa_auto_iterates_to_a_fixed_point_under_congestion(tiny_layers, th_c
         assert ka.pilot_kappas[0] == -math.inf and np.all(np.diff(ka.pilot_kappas) > 0)     # kappa only rises
         assert ka.kappa == ka.pilot_kappas[-1] and ka.spend_ratios[-1] <= 1.0                # last pilot fits
         assert all(r > 1.0 for r in ka.spend_ratios[:-1])                                   # every earlier one overspent
-    # kappa_max_iter = 0 is the single pilot of spec §6 before H-21; a rerun at its kappa overspends.
+    # kappa_max_iter = 0 is the original single pilot; a rerun at its kappa overspends.
     single = with_max_iter(0)
     ka0 = kappa_auto(single, [0.35], budget, engine=CONGESTED)[0]
     first = run_jobs([Job(cfg=single, seed=pilot_seed(single), theta=0.35, kappa=-math.inf, enforce_budget=False)],
@@ -334,10 +334,10 @@ def test_evaluate_mode(th_cfg, tmp_path):
     meta = pd.read_parquet(tmp_path / "meta" / "run_metadata.parquet")
     assert list(meta.columns) == list(META_COLUMNS) and len(meta) == 2
     assert np.isfinite(meta["kappa"]).all() and (meta["budget_B_vnd"] == budget).all()
-    assert (meta["kappa_pilots"] >= 2).all()                                    # pilot at -inf, then rerun(s) (H-21)
+    assert (meta["kappa_pilots"] >= 2).all()                                    # pilot at -inf, then rerun(s)
     assert (meta["policy"] == "threshold").all() and meta["run_id"].is_unique
     from sim.runner import pilot_seed
-    assert (meta["budget_pilot_seed"] == pilot_seed(th_cfg)).all() and (meta["budget_pilot_spent_vnd"] > 0).all()   # T-40
+    assert (meta["budget_pilot_seed"] == pilot_seed(th_cfg)).all() and (meta["budget_pilot_spent_vnd"] > 0).all()
     assert (meta["hidden_view"] == "none").all() and (disk["world_seed"] == th_cfg.meta.world_seed).all()
 
 
@@ -385,7 +385,7 @@ def test_generate_mode(tiny_layers, tmp_path):
     table, result = generate(legacy, tmp_path, engine=FAKE)
     assert len(table) == 1 and table["policy"][0] == "legacy" and result.policy == "legacy"
     assert result.window_end_s == 3600.0 + 2 * 86400.0                           # generate.days, not window_min
-    assert table["budget_B_vnd"][0] > 0                                           # legacy runs under B (spec §11.2)
+    assert table["budget_B_vnd"][0] > 0                                           # legacy runs under B
     assert len(pd.read_parquet(tmp_path / "meta" / "run_metadata.parquet")) == 1
     exp = load_config(tiny_layers, ["policy.name=experiment", "generate.days=1", "runner.n_procs=1"])
     table, result = generate(exp, tmp_path / "exp", engine=FAKE)
@@ -412,7 +412,7 @@ def test_run_mode_dispatch(th_cfg, tiny_layers, tmp_path):
 
 
 def test_full_log_run_dirs_are_self_contained(tmp_path):
-    """T11.1: every per-seed directory of a multi-seed full-log run carries its own one-row results and metadata,
+    """Every per-seed directory of a multi-seed full-log run carries its own one-row results and metadata,
     matching the table-level files, so animation and check_dataset can read one run at a time."""
     import pandas as pd
 

@@ -1,4 +1,4 @@
-"""Voucher policies (docs/spec.md §6)."""
+"""Voucher policies."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def make_policy(cfg: Config, world, *, rng: Rng | None = None, theta: float | No
         return LegacyPolicy(cfg, LegacyHiddenView.from_world(world), rng, world.n_cells)
     if name == "threshold":
         score_fn = None
-        if is_oracle(cfg.policy.threshold.score_fn):          # the only place the oracle gate is opened (T-40)
+        if is_oracle(cfg.policy.threshold.score_fn):          # the only place the oracle gate is opened
             score_fn = make_oracle_score(cfg, OracleHiddenView.from_world(world))
         return ThresholdPolicy(cfg, world.n_cells, theta=theta, kappa=kappa, neighbors=world.space.neighbors,
                                score_fn=score_fn)
@@ -46,7 +46,7 @@ HIDDEN_VIEWS = ("none", "legacy", "oracle")
 def hidden_view(cfg: Config) -> str:
     """Which gate to hidden variables the policy of ``cfg`` opens: ``"legacy"`` (``LegacyHiddenView``,
     ``u_latent``), ``"oracle"`` (``OracleHiddenView``, threshold with the oracle score) or ``"none"``.
-    Written to ``meta/run_metadata.hidden_view`` (decisions T-40, T-41; phan_cong_v3 B9 item 5)."""
+    Written to ``meta/run_metadata.hidden_view``."""
     name = cfg.policy.name
     if name == "legacy":
         return "legacy"

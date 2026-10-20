@@ -1,4 +1,4 @@
-"""docs/tests.md, M2 Demand; plus the world generation of sim/population.py (spec §4.2, §4.8)."""
+"""Demand (sim/demand.py); plus the world generation of sim/population.py."""
 
 import dataclasses
 
@@ -60,7 +60,7 @@ def test_world_depends_on_world_seed_only(cfg, world):
 
 
 def test_world_parts_are_never_renumbered():
-    # VENUES added by the S7 contract (decisions H-30); existing codes keep their numbers.
+    # VENUES was added last; existing codes keep their numbers.
     assert [(p.name, int(p)) for p in WorldPart] == [("CELL_WEIGHT", 1), ("RIDERS", 2), ("DRIVERS", 3), ("VENUES", 4)]
 
 
@@ -121,7 +121,7 @@ def test_behaviour_coefficients_follow_spec(cfg, world):
 
 
 def test_max_wait_mode_is_five_minutes(cfg, world):
-    # docs/tests.md M2: mode ≈ 5 min (±0.5). For a log-normal, mode = exp(mean(log x) - var(log x)).
+    # Mode ≈ 5 min (±0.5). For a log-normal, mode = exp(mean(log x) - var(log x)).
     log_wait = np.log(world.riders.max_wait_min.astype(np.float64))
     mode = np.exp(log_wait.mean() - log_wait.var())
     assert mode == pytest.approx(cfg.riders.max_wait_mode_min, abs=0.5)
@@ -181,7 +181,7 @@ def test_sampling_tables(cfg, world):
     np.testing.assert_allclose(p, expected / expected.sum(), atol=1e-12)
 
 
-# --- demand: rate (docs/tests.md M2) --------------------------------------------
+# --- demand: rate ---------------------------------------------------------------
 
 
 def test_session_rate_formula(cfg, world):
@@ -193,7 +193,7 @@ def test_session_rate_formula(cfg, world):
 
 
 def test_mean_sessions_per_cell_hour_match_lambda(tiny_layers):
-    # docs/tests.md M2: mean sessions per (cell, hour) over 2 000 ticks within ±5% of lambda.
+    # Mean sessions per (cell, hour) over 2 000 ticks within ±5% of lambda.
     # Hour 18 of 34 days = 2 040 ticks; demand_scale = 4 gives 2 000 to 18 000 sessions per cell,
     # so ±5% is 2 to 7 standard deviations of the Poisson noise.
     cfg = load_config(tiny_layers, ["demand.demand_scale=4"])
@@ -226,7 +226,7 @@ def test_zero_demand_spawns_nothing(tiny_cfg):
 
 
 def test_sessions_do_not_depend_on_policy(tiny_cfg):
-    # docs/tests.md M2: the same (day, tick, cell) gives the same sessions whatever the policy.
+    # The same (day, tick, cell) gives the same sessions whatever the policy.
     off = spawn_ticks(make_context(tiny_cfg, on=False), range(240))
     on = spawn_ticks(make_context(tiny_cfg, on=True), range(240))
     assert off.sessions.n == on.sessions.n > 0
@@ -343,7 +343,7 @@ def test_second_day_uses_new_keys(tiny_cfg):
     assert not np.array_equal(s.col("u_book")[d0][:5], s.col("u_book")[d1][:5])
 
 
-# --- demand: who rides and where (spec §4.2) -----------------------------------
+# --- demand: who rides and where -----------------------------------------------
 
 
 def test_riders_come_mostly_from_the_pickup_cell(cfg, morning):
@@ -370,7 +370,7 @@ def test_home_cell_share_extremes(share, all_resident):
 
 
 def test_destination_frequency_decreases_with_distance(morning):
-    # docs/tests.md M2: per destination cell, a farther ring is chosen less often.
+    # Per destination cell, a farther ring is chosen less often.
     s, space = morning.sessions, morning.world.space
     ring = space.D[s.col("pu_cell"), s.col("do_cell")]
     cells_in_ring = np.array([(space.D[0] == k).sum() for k in range(space.radius + 1)])

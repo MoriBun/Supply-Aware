@@ -1,4 +1,4 @@
-"""analysis/ (docs/phan_cong.md T3.3): policy value with CI, paired differences, Qini / AUUC, run loading."""
+"""analysis/: policy value with CI, paired differences, Qini / AUUC, run loading."""
 
 import math
 
@@ -71,7 +71,7 @@ def test_bootstrap_ci_contains_the_mean_and_is_deterministic():
     assert all(math.isnan(v) for v in bootstrap_mean_ci([]))
 
 
-# --- theta* as a set, and regret of an estimated threshold (decisions T-31) --------------------
+# --- theta* as a set, and regret of an estimated threshold -------------------------------------
 
 
 def sweep_results() -> pd.DataFrame:
@@ -222,7 +222,7 @@ def test_load_run_never_returns_hidden_tables(tmp_path):
     assert math.isnan(qini_auuc(y, run["sessions"]["arm"], x_freq)["qini_coef"])   # no control arm under all_on
 
 
-# --- data set validation before a handoff (B7) ------------------------------------------------
+# --- data set validation ----------------------------------------------------------------------
 
 
 def test_check_dataset_accepts_generated_data_and_catches_a_leak(tmp_path):

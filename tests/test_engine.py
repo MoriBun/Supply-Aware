@@ -1,4 +1,4 @@
-"""Sprint-0 skeleton: the tick loop runs end to end with stubs (docs/phan_cong.md, B0: "engine stub chạy all_off")."""
+"""Engine skeleton: the tick loop runs end to end with stubs."""
 
 import dataclasses
 import inspect
@@ -15,7 +15,7 @@ from sim.state import Clock, SimContext
 from tests.fakes import ForbiddenAccess, make_context, stub_world, with_forbidden
 
 
-# --- contract: every step is step(ctx, t) (decisions T-19, T-20) ---------------------
+# --- contract: every step is step(ctx, t) --------------------------------------------
 
 STEPS = [trips.advance, supply.update, cancel.expire_waiting, demand.spawn, VoucherLayer.quote, choice.decide,
          matching.match, cancel.en_route, reposition.step]
@@ -114,16 +114,16 @@ def test_budget_arguments(tiny_cfg):
 
 
 def test_default_config_skeleton_is_fast(default_yaml):
-    # 1 day of ticks with stubs must stay far below the 30 s target (spec §8): the loop itself is cheap.
+    # 1 day of ticks with stubs must stay far below the 30 s target: the loop itself is cheap.
     from sim.config import load_config
     cfg = load_config(default_yaml)
     res = _run(cfg)
-    assert res.sim_end_s == 90000 and res.promo_on.shape == (96, 61)    # H7.1: 61 cells
+    assert res.sim_end_s == 90000 and res.promo_on.shape == (96, 61)    # 61 cells
     assert res.runtime_s < 5.0
 
 
-def test_every_s7_contract_key_is_implemented():
-    # B9 (decisions H-29, H-30) refused contract keys whose behaviour was not implemented yet; each S7
-    # task removed its line (H7.2 ring_tiebreak, H7.3 exact_time, H7.4 shocks, H7.8 Hanoi tariff).
+def test_every_model_option_key_is_implemented():
+    # The engine refused config keys whose behaviour was not implemented yet (ring_tiebreak, exact_time,
+    # shocks, the Hanoi tariff); all of them are implemented now, so the list is empty.
     from sim.engine import _NOT_YET
     assert _NOT_YET == ()

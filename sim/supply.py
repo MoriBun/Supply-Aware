@@ -1,7 +1,5 @@
 """M8 SupplyModel: periodic shifts; drivers leave only when idle.
 
-Spec: docs/spec.md §4.8; decisions T-02, T-08. Milestone: P1 (task H1.4).
-
 Contract: ``init_drivers`` sets the t = 0 state (drivers whose periodic shift
 covers t = 0 start IDLE at their origin cell; ``shift_mode = always_on`` puts
 every driver online for the whole run). ``update`` handles shift starts and
@@ -11,7 +9,7 @@ Supply never looks at demand, policy or snapshots (hard rule 5). A driver who is
 busy when the shift ends is left alone: ``trips.advance`` (step 1) makes them
 IDLE at dropoff, and ``update`` (step 2 of the same tick) then takes them offline.
 
-Shocks (W1, ``ctx.shocks``, H7.4, decisions H-39), schedule mode only: a shift that
+Shocks (W1, ``ctx.shocks``), schedule mode only: a shift that
 starts on day k is skipped when the driver does not work on day k (the next working
 day's shift is taken) and starts ``jitter_s[k]`` later; while it rains, drivers
 flagged for that day stop as soon as they are idle (OFFLINE, ``paused``) and come
@@ -34,7 +32,7 @@ def init_drivers(ctx: SimContext) -> None:
     """Called once before the first tick: put the drivers whose shift covers t = 0 online."""
     cfg, drivers, schedule = ctx.cfg, ctx.drivers, ctx.world.drivers
     if cfg.supply.early_exit_enabled:
-        raise NotImplementedError("supply.early_exit_enabled: sensitivity analysis only, see decisions Q18")
+        raise NotImplementedError("supply.early_exit_enabled: sensitivity analysis only")
 
     if cfg.supply.shift_mode == "always_on":
         drivers.shift_start_s[:] = 0.0

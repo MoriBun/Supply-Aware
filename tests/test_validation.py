@@ -1,4 +1,4 @@
-"""Task T6.1: validation numbers read from saved runs (analysis/validation.py) for notebook 01."""
+"""Validation numbers read from saved runs (analysis/validation.py) for notebook 01."""
 
 import math
 

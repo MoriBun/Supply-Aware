@@ -1,7 +1,5 @@
 """LegacyPolicy: rule on lagged slack with an epsilon coin, rider targeting via LegacyHiddenView, explore slice.
 
-Spec: docs/spec.md §6 [report M3]; decisions T-07, T-24. Milestone: P4 (task T2.3).
-
 The operator of the past: a cell is on when last slot's slack was at least
 ``slack_on``, except that with probability ``epsilon_cell`` the state is a coin
 with ``epsilon_p_on`` (CELLSLOT stream, key ``(LEGACY_EPS, 0, cell, slot)``).
@@ -52,7 +50,7 @@ class LegacyPolicy:
         cell_prop = ((1.0 - p.epsilon_cell) * rule_on + p.epsilon_cell * p.epsilon_p_on).astype(np.float32)
         return CellDecision(
             slot=int(slot), promo_on=promo_on, cell_propensity=cell_prop, mechanism=mechanism,
-            s_hat=np.minimum(lag, self.slack_cap).astype(np.float32),   # slot k-1, capped (H-40)
+            s_hat=np.minimum(lag, self.slack_cap).astype(np.float32),   # slot k-1, capped
             cluster_id=np.full(self.n_cells, -1, dtype=np.int16),
         )
 

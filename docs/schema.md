@@ -5,7 +5,7 @@ Mọi bảng ghi dạng **Parquet** (pyarrow), mỗi lượt chạy một thư m
 ```
 runs/<run_name>/
   meta/run_metadata.parquet
-  meta/shocks.parquet                (luôn ghi; rỗng khi shocks.enabled = false, H-30)
+  meta/shocks.parquet                (luôn ghi; rỗng khi shocks.enabled = false)
   observed/riders.parquet
   observed/sessions.parquet
   observed/orders.parquet
@@ -21,14 +21,14 @@ runs/<run_name>/
 
 - `observed/` và `market/` là dữ liệu mà mô hình uplift và chính sách **được phép** đọc.
 - `hidden/` là ground truth. **Chỉ** dùng để đánh giá và debug; tuyệt đối không nối (join) vào dữ liệu huấn luyện.
-- Test `test_no_hidden_leak` kiểm tra rằng không cột nào trong danh sách ẩn xuất hiện trong `observed/` hoặc `market/`. **Danh sách này là chuẩn** (T-11); CLAUDE.md quy tắc 3 trỏ về đây. Danh sách ẩn gồm:
+- Test `test_no_hidden_leak` kiểm tra rằng không cột nào trong danh sách ẩn xuất hiện trong `observed/` hoặc `market/`. **Danh sách này là chuẩn**; quy tắc 3 của `CLAUDE.md` trỏ về đây. Danh sách ẩn gồm:
   `u_latent, alpha, beta_price, beta_eta, delta_promo, max_wait_min, propensity_true, p_request_treat, p_request_control, direct_request_effect_fixed_market, u_book, u_target, u_explore, u_explore_arm, u_score, trip_noise, e_cancel`.
 - `score` là đầu ra của chính sách nên là cột quan sát, kể cả khi `score_fn = random` cho `score = u_score`. Test rò rỉ kiểm theo tên cột.
 - Mọi bảng có cột `run_id` (string) và `seed` (int32).
 
-Kiểu dữ liệu viết theo Arrow: `int8/16/32/64`, `float32/64`, `bool`, `string`, `timestamp` không dùng. Thời gian lưu bằng **giây kể từ đầu lượt chạy** (`float64`).
+Kiểu dữ liệu viết theo Arrow: `int8/16/32/64`, `float32/64`, `bool`, `string`, `timestamp` không dùng. Thời gian lưu bằng **giây kể từ đầu lượt chạy** (`float64`). Tiền tính bằng **đồng** (cột `*_vnd`).
 
-Kiểu ở đây là kiểu **trên đĩa**. Trong bộ nhớ (`sim/state.py`), cột `string` (`assign_mechanism`, `status`, `cancel_reason`) là mã `int8` và logger đổi sang chuỗi bằng `state.decode_codes` khi ghi (T-20); các số rút sẵn của session giữ `float64` trong bộ nhớ và ghi `float32`. `tests/test_schema_contract.py` đối chiếu tên cột với file này; `test_logger` (P5) kiểm kiểu trên đĩa.
+Kiểu ở đây là kiểu **trên đĩa**. Trong bộ nhớ (`sim/state.py`), cột `string` (`assign_mechanism`, `status`, `cancel_reason`) là mã `int8` và logger đổi sang chuỗi bằng `state.decode_codes` khi ghi; các số rút sẵn của session giữ `float64` trong bộ nhớ và ghi `float32`. `tests/test_schema_contract.py` đối chiếu tên cột với file này; `tests/test_logger.py` kiểm kiểu trên đĩa.
 
 ---
 
@@ -42,24 +42,24 @@ Kiểu ở đây là kiểu **trên đĩa**. Trong bộ nhớ (`sim/state.py`), 
 | config_yaml | string | toàn văn config đã áp override |
 | git_sha | string | commit của code |
 | policy | string | |
-| hidden_view | string | cổng tới biến ẩn mà chính sách của lượt chạy mở: `legacy` (`LegacyHiddenView`, `u_latent`), `oracle` (`OracleHiddenView`, hệ số đặt xe, chỉ với `threshold` + `score_fn = oracle`), hoặc `none` (T-40, T-41, KN 3.1) |
+| hidden_view | string | cổng tới biến ẩn mà chính sách của lượt chạy mở: `legacy` (`LegacyHiddenView`, `u_latent`), `oracle` (`OracleHiddenView`, hệ số đặt xe, chỉ với `threshold` + `score_fn = oracle`), hoặc `none` |
 | theta | float64 | NaN nếu không áp dụng |
 | seed | int32 | |
 | world_seed | int64 | |
 | budget_B_vnd | float64 | NaN nếu không áp ngân sách |
-| budget_pilot_seed | int64 | seed của lượt pilot all_on dùng tính B (= `run_seed + budget.pilot_seed_offset`); −1 nếu không có pilot (T-40, Q23) |
-| budget_pilot_spent_vnd | float64 | chi tiêu voucher của lượt pilot trên cửa sổ gốc, B = `fraction` × số này / số kỳ; NaN nếu không có pilot (T-40, Q23) |
+| budget_pilot_seed | int64 | seed của lượt pilot all_on dùng tính B (= `run_seed + budget.pilot_seed_offset`); −1 nếu không có pilot |
+| budget_pilot_spent_vnd | float64 | chi tiêu voucher của lượt pilot trên cửa sổ gốc, B = `fraction` × số này / số kỳ; NaN nếu không có pilot |
 | kappa | float64 | NaN nếu không áp dụng |
-| kappa_pilots | int32 | số lượt pilot κ auto đã chạy để ra `kappa`, gồm lượt κ = −∞ (H-21); 0 nếu không dùng κ auto. Thêm ngày 05/10: bộ dữ liệu sinh trước đó không có cột này |
+| kappa_pilots | int32 | số lượt pilot κ auto đã chạy để ra `kappa`, gồm lượt κ = −∞; 0 nếu không dùng κ auto |
 | window_start_s, window_end_s | float64 | cửa sổ đánh giá |
 | sim_end_s | float64 | thời điểm dừng (gồm cool-down) |
 | n_truncated_orders | int32 | order bị cắt khi hết cool-down |
 | runtime_s | float64 | thời gian chạy thực |
 | created_at | string | ISO 8601 |
 
-## meta/shocks (một dòng mỗi biến động; rỗng khi `shocks.enabled = false`, H-30)
+## meta/shocks (một dòng mỗi biến động; rỗng khi `shocks.enabled = false`)
 
-Lịch biến động của lượt chạy, rút trước theo ngày (luồng SHOCK, H-30). Chính sách **không** đọc được bảng này; chỉ dùng để phân tích (chọn khung cho animation, tách theo biến động). Ghi ở H7.7.
+Lịch biến động của lượt chạy (thế giới W1), rút trước theo ngày từ luồng SHOCK. Chính sách **không** đọc được bảng này; chỉ dùng để phân tích (chọn khung cho animation, tách kết quả theo biến động).
 
 | Cột | Kiểu | Mô tả |
 |---|---|---|
@@ -86,7 +86,7 @@ Lịch biến động của lượt chạy, rút trước theo ngày (luồng SH
 
 | Cột | Kiểu | Mô tả |
 |---|---|---|
-| session_id | int64 | ID ổn định (spec §2) |
+| session_id | int64 | ID ổn định `((day·ticks_per_day + tick_of_day)·N_ô + cell)·1000 + k`, k là thứ tự session trong (ô, tick) |
 | rider_id | int32 | |
 | open_time_s | float64 | |
 | day, hour, slot, slot_of_day | int16 | |
@@ -101,14 +101,14 @@ Lịch biến động của lượt chạy, rút trước theo ngày (luồng SH
 | propensity | float32 | NaN nếu không biết (chính sách cũ nhắm rider) |
 | cell_propensity | float32 | NaN nếu không biết |
 | cluster_id | int16 | −1 nếu không phải thí nghiệm |
-| block | int32 | tính từ đầu lượt chạy (T-15); −1 nếu không phải thí nghiệm |
+| block | int32 | tính từ đầu lượt chạy; −1 nếu không phải thí nghiệm |
 | in_burnin | bool | |
 | budget_blocked | bool | muốn phát nhưng hết ngân sách |
-| budget_period | int16 | kỳ ngân sách của session (T-03); −1 = warm-up |
+| budget_period | int16 | kỳ ngân sách của session; −1 = warm-up |
 | score | float32 | điểm tầng rider; NaN nếu không dùng |
-| slack_hat | float32 | ŝ của ô đón: với `threshold` là dự báo dùng ra quyết định; với `experiment` và `legacy` (từ H7.6, H-40) là slack đã công bố của slot k−1, chặn ở `monitor.slack_cap`; NaN nếu chưa công bố hoặc chính sách cố định (T-41, KN 3.3, Q8) |
-| lag_slot_same_block | bool | slot k−1 cùng khối switchback với slot k; `true` với chính sách không có khối; `false` ở slot 0 (T-40, H-40; điền từ H7.6) |
-| requested | bool | kết quả M4 |
+| slack_hat | float32 | ŝ của ô đón: với `threshold` là dự báo dùng ra quyết định; với `experiment` và `legacy` là slack đã công bố của slot k−1; mọi trường hợp chặn ở `monitor.slack_cap`; NaN nếu chưa công bố hoặc chính sách cố định |
+| lag_slot_same_block | bool | slot k−1 cùng khối switchback với slot k; `true` với chính sách không có khối; `false` ở slot 0 |
+| requested | bool | khách có đặt xe không |
 | in_window | bool | open_time trong cửa sổ đánh giá |
 
 ## observed/orders (một dòng mỗi order, `order_id = session_id`)
@@ -131,7 +131,7 @@ Lịch biến động của lượt chạy, rút trước theo ngày (luồng SH
 | gross_fare_vnd | float32 | |
 | voucher_value_vnd | float32 | |
 | net_fare_vnd | float32 | gross − voucher |
-| driver_pay_vnd | float32 | (1 − commission) × (gross − phí nền tảng) (H-42) |
+| driver_pay_vnd | float32 | (1 − commission) × (gross − phí nền tảng) |
 | platform_profit_vnd | float32 | net − driver_pay = phí nền tảng + commission × (gross − phí) − voucher; 0 nếu không hoàn thành |
 | status | string | Completed / Abandoned / Cancelled / Truncated |
 | cancel_reason | string | "" / rider_en_route |
@@ -147,10 +147,10 @@ Lịch biến động của lượt chạy, rút trước theo ngày (luồng SH
 | enroute_avg (E) | float32 | xe đang đi đón khách ở ô này |
 | ontrip_avg (O) | float32 | |
 | waiting_avg (W) | float32 | |
-| slack | float64 | I/E; khi E = 0: `inf` nếu I > 0, 0 nếu I = 0 (H-14) |
+| slack | float64 | I/E; khi E = 0: `inf` nếu I > 0, 0 nếu I = 0 (ô không có xe rảnh là ô căng) |
 | utilization | float32 | (E+O)/(I+E+O) |
 | mean_pickup_eta_min | float32 | NaN nếu không có ghép |
-| n_sessions, n_offers, n_requests, n_matched, n_completed, n_abandoned, n_cancelled | int32 | đếm theo thời điểm sự kiện và ô đón (T-15): `n_sessions/n_offers/n_requests` theo open_time; `n_matched` theo matched_time; `n_abandoned/n_cancelled` theo thời điểm hủy; `n_completed` theo dropoff_time |
+| n_sessions, n_offers, n_requests, n_matched, n_completed, n_abandoned, n_cancelled | int32 | đếm theo thời điểm sự kiện và ô đón: `n_sessions/n_offers/n_requests` theo open_time; `n_matched` theo matched_time; `n_abandoned/n_cancelled` theo thời điểm hủy; `n_completed` theo dropoff_time |
 | voucher_spent_vnd | float32 | voucher của order hoàn thành trong slot, theo ô đón |
 | promo_on | bool | trạng thái trong slot này |
 | cell_propensity | float32 | |
@@ -177,7 +177,7 @@ Lịch biến động của lượt chạy, rút trước theo ngày (luồng SH
 | p_request_treat | float32 | P(đặt) nếu có voucher, cùng bối cảnh |
 | p_request_control | float32 | P(đặt) nếu không voucher |
 | direct_request_effect_fixed_market | float32 | treat − control. **Không phải uplift thật; không dùng để chấm mô hình** |
-| u_book, u_target, u_explore, u_explore_arm, u_score | float32 | số rút sẵn của session, để tái lập (T-11) |
+| u_book, u_target, u_explore, u_explore_arm, u_score | float32 | số rút sẵn của session, để tái lập |
 | trip_noise, e_cancel | float32 | để tái lập |
 
 ## results/policy_results (một dòng mỗi lượt chạy)
@@ -187,7 +187,7 @@ Lịch biến động của lượt chạy, rút trước theo ngày (luồng SH
 | run_id, policy | string | |
 | theta | float64 | |
 | seed | int32 | |
-| world_seed | int64 | để gộp nhiều thế giới (T-40, Q18) |
+| world_seed | int64 | để gộp nhiều thế giới |
 | N_completed | int64 | **N(π)**, đơn tạo trong cửa sổ |
 | V_profit_vnd | float64 | **V(π)** |
 | voucher_spent_vnd | float64 | |
@@ -195,7 +195,7 @@ Lịch biến động của lượt chạy, rút trước theo ngày (luồng SH
 | n_sessions, n_requests, n_abandoned, n_cancelled | int64 | trong cửa sổ |
 | mean_pickup_eta_min | float64 | |
 | share_cells_off | float64 | tỷ lệ (ô, slot) bị tắt |
-| n_switches_per_cell_day | float64 | cho test T3 |
+| n_switches_per_cell_day | float64 | số lần bật/tắt mỗi ô mỗi ngày (kiểm A3) |
 | runtime_s | float64 | |
 
 ## results/theta_sweep (tổng hợp từ policy_results)
@@ -215,5 +215,5 @@ Lịch biến động của lượt chạy, rút trước theo ngày (luồng SH
 | seed | int32 | |
 | completed_per_h, requests_per_h | float64 | order tạo trong cửa sổ / giờ cửa sổ |
 | mean_pickup_eta_min | float64 | trên order được ghép, tạo trong cửa sổ |
-| mean_slack | float64 | tổng (xe rảnh × tick) / tổng (xe đi đón × tick) trên cửa sổ; `inf` nếu mẫu số 0 (T-15) |
+| mean_slack | float64 | tổng (xe rảnh × tick) / tổng (xe đi đón × tick) trên cửa sổ; `inf` nếu mẫu số 0 |
 | abandon_rate, cancel_rate | float64 | `n_abandoned / n_requests`, `n_cancelled / n_requests` trên order tạo trong cửa sổ |

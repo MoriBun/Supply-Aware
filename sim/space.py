@@ -1,11 +1,9 @@
 """M1 SpaceTime: hex grid, torus, distance matrix D, travel times T[a, b, h], pickup ETA.
 
-Spec: docs/spec.md §4.1. Milestone: P1 (task H1.1).
-
 Everything here is a pure function of ``cfg.space`` (plus the pickup limits of
 ``cfg.matching``), computed once per run by :func:`build_space`; the arrays are
 read-only afterwards. ``SpaceTime.find_pickup`` is the single implementation of
-the M5 search rule (spec §4.5), shared by the quoted ETA (M1/M4) and matching (M5).
+the M5 search rule, shared by the quoted ETA (M1/M4) and matching (M5).
 """
 
 from __future__ import annotations
@@ -18,10 +16,10 @@ import numpy as np
 
 from sim.config import Config
 
-# Six axial neighbour directions (spec §4.1).
+# Six axial neighbour directions.
 HEX_DIRECTIONS: tuple[tuple[int, int], ...] = ((1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1))
 
-# Torus images are searched over i, j in {-1, 0, 1} (spec §4.1).
+# Torus images are searched over i, j in {-1, 0, 1}.
 _SHIFTS: tuple[tuple[int, int], ...] = tuple((i, j) for i in (-1, 0, 1) for j in (-1, 0, 1))
 
 
@@ -41,7 +39,7 @@ def hex_cells(radius: int) -> np.ndarray:
 
 
 def hex_area_km2(edge_km: float) -> float:
-    """Area of a regular hexagon with side ``edge_km`` (spec §4.1)."""
+    """Area of a regular hexagon with side ``edge_km``."""
     return 3.0 * math.sqrt(3.0) / 2.0 * edge_km * edge_km
 
 
@@ -51,13 +49,13 @@ def hex_distance(dq: np.ndarray | int, dr: np.ndarray | int) -> np.ndarray | int
 
 
 def torus_vectors(radius: int) -> tuple[tuple[int, int], tuple[int, int]]:
-    """Translation vectors ``a = (2R+1, -R)``, ``b = (R, R+1)`` (spec §4.1)."""
+    """Translation vectors ``a = (2R+1, -R)``, ``b = (R, R+1)``."""
     return (2 * radius + 1, -radius), (radius, radius + 1)
 
 
 @dataclass
 class SpaceTime:
-    """Static geometry and travel times of the world (spec §4.1). All arrays are read-only."""
+    """Static geometry and travel times of the world. All arrays are read-only."""
 
     n_cells: int
     cell_q: np.ndarray        # int16 [N]
@@ -77,14 +75,14 @@ class SpaceTime:
     eta_floor_min: float
     max_pickup_eta_min: float     # from cfg.matching, so the quote and M5 use the same limit
     max_ring: Optional[int]       # from cfg.matching; None = up to the whole grid
-    ring_tiebreak: str = "lowest_id"  # from cfg.matching: lowest_id | most_idle (decisions H-29, H-37)
+    ring_tiebreak: str = "lowest_id"  # from cfg.matching: lowest_id | most_idle
     is_stub: bool = False
 
     def eta_in(self, idle_count: int | np.ndarray, hour: int | np.ndarray) -> float | np.ndarray:
         """Expected pickup ETA (minutes) when ``idle_count >= 1`` drivers idle in the rider's cell.
 
-        ``ETA_in(I, h) = max(eta_floor_min, detour * nn_const * (A / I)**gamma / v_h * 60)``
-        [report (4)]. Vectorised over ``idle_count`` and ``hour``.
+        ``ETA_in(I, h) = max(eta_floor_min, detour * nn_const * (A / I)**gamma / v_h * 60)``.
+        Vectorised over ``idle_count`` and ``hour``.
         """
         idle = np.asarray(idle_count)
         if np.any(idle < 1):
@@ -95,7 +93,7 @@ class SpaceTime:
         return float(eta) if eta.ndim == 0 else eta
 
     def find_pickup(self, cell: int, hour: int, idle_count: np.ndarray) -> tuple[int, float]:
-        """Source cell and pickup ETA for a rider in ``cell`` under the M5 search rule (spec §4.5).
+        """Source cell and pickup ETA for a rider in ``cell`` under the M5 search rule.
 
         ``idle_count[c]`` is the number of idle, on-shift drivers in cell ``c``.
 
@@ -104,8 +102,8 @@ class SpaceTime:
            exceeds ``max_pickup_eta_min`` or k passes ``max_ring``. In the nearest ring
            with an idle driver, take the cell with the smallest ``T``. Ties (on the synthetic
            grid every cell of a ring ties) go by ``ring_tiebreak``: ``most_idle`` takes the cell
-           with the most idle drivers, then the smallest id (KN 2.1, decisions H-37);
-           ``lowest_id`` takes the smallest id (spec §4.5 before S7).
+           with the most idle drivers, then the smallest id;
+           ``lowest_id`` takes the smallest id.
         3. An ETA above ``max_pickup_eta_min`` counts as no pickup.
 
         Returns ``(source_cell, eta_min)``, or ``(-1, inf)`` if no pickup is possible.
@@ -152,7 +150,7 @@ def build_space(cfg: Config) -> SpaceTime:
     """Build the grid, distances and travel-time table from ``cfg.space``."""
     sc = cfg.space
     if sc.variant != "synthetic":
-        raise NotImplementedError(f"space.variant={sc.variant!r}: the NYC grid is milestone P7 (spec §10)")
+        raise NotImplementedError(f"space.variant={sc.variant!r}: the NYC grid is not implemented")
 
     R = sc.grid_radius
     cells = hex_cells(R)
@@ -174,7 +172,7 @@ def build_space(cfg: Config) -> SpaceTime:
     dist_km = sc.detour_factor * D.astype(np.float64) * s
     np.fill_diagonal(dist_km, sc.detour_factor * sc.intra_cell_dist_factor * math.sqrt(area))
     if cfg.shocks.enabled:
-        # Rain layer (decisions H-39): hour index h + 24 is hour h with speeds x rain.speed_mult.
+        # Rain layer: hour index h + 24 is hour h with speeds x rain.speed_mult.
         speed = np.concatenate([speed, speed * cfg.shocks.rain.speed_mult])
     T = (dist_km[:, :, None] / speed[None, None, :] * 60.0).astype(np.float32)
 

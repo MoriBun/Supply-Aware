@@ -1,4 +1,4 @@
-"""Sprint 5 evaluation (docs/phan_cong.md T5.1–T5.3): policy table under B, Qini against N(pi), interference."""
+"""Policy evaluation: policy table under B, Qini against N(pi), interference."""
 
 import math
 
@@ -14,7 +14,7 @@ TINY = [ROOT / "config" / "default.yaml", ROOT / "tests" / "fixtures" / "tiny.ya
 FAKE = "tests.fakes:fake_run"
 
 
-# --- T5.1: policy table under one budget -------------------------------------------------------
+# --- policy table under one budget -------------------------------------------------------------
 
 
 def test_parse_spec_and_configure():
@@ -33,7 +33,7 @@ def test_parse_spec_and_configure():
     ring = parse_spec("label=r,policy=threshold,theta=0.25,scope=ring1")
     assert ring.scope == "ring1" and configure(cfg, ring).policy.threshold.scope == "ring1"
     assert configure(cfg, spec).policy.threshold.scope == cfg.policy.threshold.scope == "cell"
-    city = parse_spec("label=c,policy=threshold,theta=0.25,scope=city,score_fn=oracle")   # S10 T10.1: city tier, oracle
+    city = parse_spec("label=c,policy=threshold,theta=0.25,scope=city,score_fn=oracle")   # city tier, oracle
     assert configure(cfg, city).policy.threshold.scope == "city"
     assert configure(cfg, city).policy.threshold.score_fn == "oracle"
     with pytest.raises(ValueError):
@@ -146,7 +146,7 @@ def tiny_runs(tmp_path_factory):
     return dirs
 
 
-# --- T5.2: Qini against N(pi) ------------------------------------------------------------------
+# --- Qini against N(pi) ------------------------------------------------------------------------
 
 
 def test_weighted_qini_matches_metrics_and_duplication():
@@ -239,7 +239,7 @@ def test_compare_pairs_flags_higher_qini_with_lower_value():
     assert not pairs.loc[("b", "a"), "qini_higher_n_lower"]
 
 
-# --- T5.3: designs against the GTE, hidden confounding -------------------------------------------
+# --- designs against the GTE, hidden confounding -------------------------------------------------
 
 
 def test_design_effect_scales_to_sessions_per_day_and_drops_burnin(tiny_runs):

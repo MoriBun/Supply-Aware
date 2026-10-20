@@ -1,4 +1,4 @@
-"""M11 monitor (docs/tests.md; spec §4.11; decisions T-09, T-10, T-15) with fake counters, and the no-look-ahead queue."""
+"""Monitor (sim/monitor.py) with fake counters, and the no-look-ahead queue."""
 
 import dataclasses
 
@@ -30,7 +30,7 @@ def publish_slots(mon, clock, n_slots, idle_of_slot=lambda s: 1, enroute=1):
         mon.publish(s, (s + 1) * clock.slot_s, acc, None)
 
 
-# --- means, slack, utilization (T-09, T-10) ---------------------------------------------
+# --- means, slack, utilization ----------------------------------------------------------
 
 
 def test_accumulate_and_publish_means(monitor):
@@ -72,7 +72,7 @@ def test_means_are_per_tick_averages_and_empty_cells_give_zero_slack_nan_utiliza
     rec = mon.publish(0, clock.slot_s, acc, None)
     assert rec["idle_avg"][0] == 2.0 and rec["slack"][0] == 2.0
     assert rec["utilization"][0] == pytest.approx(3 / 5)
-    assert rec["slack"][6] == 0.0 and np.isnan(rec["utilization"][6])       # I = E = 0: no supply, slack 0 (H-14); NaN (T-09)
+    assert rec["slack"][6] == 0.0 and np.isnan(rec["utilization"][6])       # I = E = 0: slack 0, utilization NaN
     assert rec["slack"].dtype == np.float64 and rec["utilization"].dtype == np.float32
 
 
@@ -82,14 +82,14 @@ def test_publish_without_ticks_gives_nan(monitor):
     assert np.isnan(rec["idle_avg"]).all() and np.isnan(rec["slack"]).all() and np.isnan(rec["utilization"]).all()
 
 
-# --- event counters by pickup cell (T-15) ------------------------------------------------
+# --- event counters by pickup cell -------------------------------------------------------
 
 
 def test_event_counters_add_up_per_cell_and_reset(monitor):
     mon, clock = monitor
     acc = SlotCounters(7)
     cells = np.array([3, 3, 5], dtype=np.int16)              # two events in cell 3 in the same tick
-    acc.n_sessions += np.bincount(cells, minlength=7).astype(np.int32)   # as demand.spawn does (H-05 d)
+    acc.n_sessions += np.bincount(cells, minlength=7).astype(np.int32)   # as demand.spawn does
     mon.on_offers(acc, cells[:1])
     mon.on_requests(acc, cells[1:])
     mon.on_matched(acc, cells, np.array([4.0, 8.0, 5.0]))
@@ -162,7 +162,7 @@ def test_slack_lag_day_nan_on_day_one_then_exact_for_whole_day_two(monitor):
     assert np.isnan(SnapshotView(mon.store, spd - 1).lag_day("slack")).all()
 
 
-# --- no look-ahead: the queue (hard rule 2; spec §4.11) -------------------------------------
+# --- no look-ahead: the queue (hard rule 2) -------------------------------------------------
 
 
 def test_view_from_monitor_refuses_look_ahead(monitor):
@@ -179,7 +179,7 @@ def test_view_from_monitor_refuses_look_ahead(monitor):
 
 
 def test_view_sees_only_snapshots_published_before_the_slot_starts(monitor):
-    # docs/tests.md M11: the policy of slot k only receives snapshots with published_at_s <= start of k.
+    # The policy of slot k only receives snapshots with published_at_s <= start of k.
     mon, clock = monitor
     publish_slots(mon, clock, 4)
     k = 4
@@ -241,7 +241,7 @@ def test_store_rejects_bad_records():
 
 
 def test_engine_publishes_every_slot_in_order(tiny_cfg):
-    # demand_scale = 0 until pricing.quote accepts sessions (T2.1 / B3), as in test_engine.py (H-05 f).
+    # demand_scale = 0, as in test_engine.py: this checks the publishing loop, not the market.
     cfg = dataclasses.replace(tiny_cfg, demand=dataclasses.replace(tiny_cfg.demand, demand_scale=0.0))
     world = stub_world(cfg)
     res = run(cfg, world, FixedPolicy(True, world.n_cells), Rng.from_config(cfg),

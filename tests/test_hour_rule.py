@@ -1,4 +1,4 @@
-"""analysis/hour_rule.py (task H9.4): NaN in the harmful hours, u_score elsewhere; loads by spec in a worker."""
+"""analysis/hour_rule.py: NaN in the harmful hours, u_score elsewhere; loads by spec in a worker."""
 
 import json
 import multiprocessing

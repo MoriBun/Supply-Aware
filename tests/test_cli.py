@@ -1,4 +1,4 @@
-"""``python -m sim run``: config validation, mode dispatch, modes end to end on the real engine (spec §7; T1.4, T2.4)."""
+"""``python -m sim run``: config validation, mode dispatch, modes end to end on the real engine."""
 
 import subprocess
 import sys
@@ -11,8 +11,7 @@ from sim.config import config_hash, load_config
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# The core steps after the quote are still stubs until B5 (no matching, no trips), so runs are kept small:
-# zero demand where the policy does not matter, one seed, one process.
+# Runs are kept small: zero demand where the policy does not matter, one seed, one process.
 SMALL = ["--set", "throughput.n_seeds=1", "--set", "throughput.demand_scale_grid=[0.5, 1.0]",
          "--set", "sweep.n_seeds=1", "--set", "gte.n_seeds=1", "--set", "sweep.theta_grid=[0.0, 0.5]",
          "--set", "runner.n_procs=1"]
@@ -44,7 +43,7 @@ def test_run_rejects_bad_config(capsys, default_yaml):
 def test_unimplemented_indicator_exits_1(capsys, tiny_layers, tmp_path):
     code = main(["run", "--mode", "evaluate"] + _configs(tiny_layers) + SMALL + ZERO_DEMAND
                 + ["--set", "policy.threshold.indicator=utilization", "--out", str(tmp_path)])
-    assert code == 1 and "Q19" in capsys.readouterr().err
+    assert code == 1 and "only 'slack' is defined" in capsys.readouterr().err
 
 
 def test_generate_needs_legacy_or_experiment(capsys, tiny_layers, tmp_path):
@@ -65,7 +64,7 @@ def test_throughput_curve_writes_results(capsys, tiny_layers, tmp_path):
 
 
 def test_gte_and_sweep_with_real_demand(capsys, tiny_layers, tmp_path):
-    # Real sessions flow through every step of the loop (core steps are real since Integration 1).
+    # Real sessions flow through every step of the loop.
     assert main(["run", "--mode", "gte"] + _configs(tiny_layers) + SMALL + ["--out", str(tmp_path / "gte")]) == 0
     gte = pd.read_parquet(tmp_path / "gte" / "results" / "policy_results.parquet")
     assert gte["policy"].tolist() == ["all_on", "all_off"] and (gte["n_sessions"] > 0).all()

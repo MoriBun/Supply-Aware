@@ -1,13 +1,11 @@
 """M5 Matching: FIFO matching, same cell first, then expanding rings up to max_pickup_eta_min.
 
-Spec: docs/spec.md §4.5. Milestone: P2 (task H2.1).
-
 Contract: ``match`` moves Waiting orders to Matched (columns of step "match"),
 drivers to EN_ROUTE, and keeps ``ctx.cells`` (idle / enroute / waiting) and
 ``ctx.slot_counters`` (n_matched, pickup ETA sums) consistent.
 
 The search rule itself lives in ``SpaceTime.find_pickup`` so that the quoted ETA
-(step 5) and the match (step 7) can never disagree (decisions H-04). Nothing here
+(step 5) and the match (step 7) can never disagree. Nothing here
 shortens the search or caps the pickup distance (hard rule 6).
 """
 
@@ -31,7 +29,7 @@ def match(ctx: SimContext, t: float) -> None:
     if len(waiting) == 0:
         return
 
-    # Only drivers that are idle and still on shift can be matched (spec §4.5).
+    # Only drivers that are idle and still on shift can be matched.
     eligible = np.flatnonzero((drivers.status == _IDLE) & (drivers.shift_end_s > t))
     if len(eligible) == 0:
         return
@@ -42,7 +40,7 @@ def match(ctx: SimContext, t: float) -> None:
     queue = eligible[np.lexsort((eligible, drivers.idle_since[eligible], cell_of))]
     head = np.searchsorted(np.sort(cell_of), np.arange(n_cells))   # start of each cell's queue
 
-    hour = travel_hour(ctx, t, clock.hour_of(t))        # + 24 while it rains (H7.4)
+    hour = travel_hour(ctx, t, clock.hour_of(t))        # + 24 while it rains
     pu_cell = orders.pu_cell
     unreachable = np.zeros(n_cells, dtype=bool)   # no pickup from this cell for the rest of the tick
     left = len(eligible)
@@ -74,7 +72,7 @@ def match(ctx: SimContext, t: float) -> None:
     rider_cell = pu_cell[o_idx]
     pickup_at = t + eta_min * 60.0
 
-    # Trip duration is fixed at match time: T[pickup, dropoff, hour of pickup] * trip_noise (spec §4.6).
+    # Trip duration is fixed at match time: T[pickup, dropoff, hour of pickup] * trip_noise.
     h_pickup = travel_hour(ctx, pickup_at, ((pickup_at % 86400) // 3600).astype(np.int64))
     base_min = space.T[rider_cell, orders.do_cell[o_idx], h_pickup].astype(np.float64)
     trip_noise = ctx.sessions.trip_noise[orders.session_idx[o_idx]]

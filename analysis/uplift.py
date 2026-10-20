@@ -1,4 +1,4 @@
-"""DR-learner for the effect of a voucher on ``completed`` (task H5.2; Kennedy 2023, decisions T-13).
+"""DR-learner for the effect of a voucher on ``completed`` (Kennedy 2023).
 
 Two targets, both learned from a legacy run (observed columns only):
 
@@ -16,14 +16,13 @@ Steps, with ``k`` cross-fitting folds split by rider (a rider's sessions stay in
 
 ``sample = "explore"`` uses the explore slice only (randomized, unbiased, small); ``sample =
 "all"`` uses every legacy session. The legacy rule targets riders with the hidden ``u_latent``,
-which no observed column carries, so ``"all"`` keeps part of that confounding: the comparison of
-the two is part of H5.3.
+which no observed column carries, so ``"all"`` keeps part of that confounding.
 
 The score functions (``"analysis.uplift:tau_x_dr"`` and friends) load the saved boosters from
 ``analysis/models`` once per process and only read ``SessionBatch`` columns, so they work inside
-spawned runner workers (handoff B8). The ``*_per_dollar`` variants divide by the expected voucher
+spawned runner workers. The ``*_per_dollar`` variants divide by the expected voucher
 cost of an offer, ``E[voucher paid | offer]`` (paid only when the trip completes), because the
-budget B is in dollars (H4.2). The cost is learned on the same features as the effect it divides:
+budget B is a sum of money (đồng; the suffix keeps its old name). The cost is learned on the same features as the effect it divides:
 ``cost_x`` on x for tau(x), ``cost_xs`` on (x, s) for tau(x, s). A cost that also used the fare
 would favour short trips whose (smaller) voucher the effect model cannot see.
 """
@@ -69,7 +68,7 @@ def uplift_frame(run: dict[str, pd.DataFrame], slack_cap: float) -> pd.DataFrame
 
     ``slack_lag_*`` of the pickup cell come from ``market/slot_snapshots``; ``inf`` is capped at
     ``slack_cap`` the way the threshold policy caps its forecast. ``budget_blocked`` sessions are
-    dropped: their propensity is no longer valid (spec §6).
+    dropped: their propensity is no longer valid.
     """
     from analysis.io import completed_outcome
 
@@ -205,12 +204,12 @@ def _predict(name: str, key: str, feats: dict[str, np.ndarray]) -> np.ndarray:
     return boosters[key].predict(X, num_threads=1)
 
 
-KVND = 1000.0   # scores "per 1.000đ" (decisions H-42, S9 H9.1): tau / (expected đồng paid per offer / 1000)
+KVND = 1000.0   # scores "per 1.000đ": tau / (expected đồng paid per offer / 1000)
 
 
 def predict_scores(name: str, feats: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
-    """``tau_x``, ``tau_xs``, their per-1.000đ versions (``*_per_kvnd``) and, for specs written before
-    S9, the plain ratio ``*_per_dollar`` = tau / expected đồng paid (same ranking, 1000x smaller)."""
+    """``tau_x``, ``tau_xs``, their per-1.000đ versions (``*_per_kvnd``) and, for older
+    specs, the plain ratio ``*_per_dollar`` = tau / expected đồng paid (same ranking, 1000x smaller)."""
     meta, _ = load_model(name)
     tau_x, tau_xs = _predict(name, "tau_x", feats), _predict(name, "tau_xs", feats)
     floor = meta["params"]["cost_floor_frac"] * meta["mean_paid_per_offer_vnd"]
@@ -230,9 +229,9 @@ def _score(batch, s_hat, which: str, name: str) -> np.ndarray:
 #   tau_{x|xs}_dr[_all][_w1][_per_dollar|_per_kvnd]
 # ``dr_explore`` is learned on the explore slice only (unbiased); ``dr_all`` on every legacy session
 # (more data, keeps the u_latent confounding). No suffix = world W0 (models ``dr_explore``, ``dr_all``);
-# ``_w1`` = world W1 (models ``dr_explore_w1``, ``dr_all_w1``, task H9.1). The functions are built here
+# ``_w1`` = world W1 (models ``dr_explore_w1``, ``dr_all_w1``). The functions are built here
 # at import time so that ``sim.policies.scores.load_score_fn("analysis.uplift:<name>")`` finds them by
-# attribute in a spawned worker too; the eight pre-S9 names are unchanged.
+# attribute in a spawned worker too; the eight older W0 names (raw and ``_per_dollar``) are unchanged.
 MODEL_SUFFIXES = {"": "dr_explore", "_all": "dr_all", "_w1": "dr_explore_w1", "_all_w1": "dr_all_w1"}
 UNIT_SUFFIXES = {"": "", "_per_dollar": "_per_dollar", "_per_kvnd": "_per_kvnd"}
 
@@ -262,7 +261,7 @@ del _xx, _msuf, _model, _usuf, _fname, _fn
 
 def main(argv: list[str]) -> int:
     """``python -m analysis.uplift fit <legacy run dir> [config.yaml ...] [--suffix w1]``: fit and save
-    ``dr_explore<suffix>`` and ``dr_all<suffix>`` (suffix ``_w1`` for world W1, task H9.1)."""
+    ``dr_explore<suffix>`` and ``dr_all<suffix>`` (suffix ``_w1`` for world W1)."""
     from analysis.io import load_run
     from sim.config import load_config
 

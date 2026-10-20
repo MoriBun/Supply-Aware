@@ -1,7 +1,5 @@
 """M6 TripExecution: pickup and dropoff events, payments.
 
-Spec: docs/spec.md §4.6. Milestone: P2 (task H2.2).
-
 Contract: ``advance`` processes drivers whose ``busy_until <= t``: pickups
 (EN_ROUTE -> ON_TRIP, order OnTrip), dropoffs (ON_TRIP -> IDLE at the dropoff
 cell, order Completed with payments, ``ctx.ledger.settle`` when the order held a
@@ -11,7 +9,7 @@ repositioning drivers.
 Event times are exact (``pickup_at``, ``dropoff_at``), not rounded to the tick
 that processes them; the trip duration was fixed at match time (matching.py).
 With ``cancel.exact_time`` a due pickup whose rider crossed the cancellation
-threshold first (``t_cancel < pickup_at``) is a cancellation instead (decisions H-38).
+threshold first (``t_cancel < pickup_at``) is a cancellation instead.
 """
 
 from __future__ import annotations
@@ -74,7 +72,7 @@ def _drop_off(ctx: SimContext, d_idx: np.ndarray) -> None:
     dropoff_at = drivers.busy_until[d_idx]
     pu_cell, do_cell = orders.pu_cell[o_idx], orders.do_cell[o_idx]
 
-    # Payments at completion (spec §4.6, decisions H-42): the platform fee goes to the platform, the
+    # Payments at completion: the platform fee goes to the platform, the
     # commission applies to the rest; profit = fee + commission x (gross - fee) - voucher.
     gross = orders.gross_fare_vnd[o_idx].astype(np.float64)
     driver_pay = (1.0 - ctx.cfg.pricing.commission_rate) * (gross - ctx.cfg.pricing.platform_fee_vnd)
@@ -101,7 +99,7 @@ def _drop_off(ctx: SimContext, d_idx: np.ndarray) -> None:
 
 
 def _arrive(ctx: SimContext, d_idx: np.ndarray) -> None:
-    """A repositioning driver reaches the target cell and becomes idle there (spec §4.9)."""
+    """A repositioning driver reaches the target cell and becomes idle there."""
     if len(d_idx) == 0:
         return
     drivers = ctx.drivers

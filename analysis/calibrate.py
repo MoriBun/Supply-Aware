@@ -1,16 +1,16 @@
-"""Calibration helper for S8 (task T8.1, docs/de_xuat_tham_so_ha_noi.md section C).
+"""Calibration helper for the CAL targets.
 
 Runs ``all_off`` on the given configuration for a few seeds (full log, in memory, no files) and
 prints, for one calibration round:
 
-- the six knobs of section C (``fleet_size``, ``demand_scale``, ``shift_start_mixture``,
+- the six calibration knobs (``fleet_size``, ``demand_scale``, ``shift_start_mixture``,
   ``dest_decay_rings``, ``alpha0``, ``delta0``);
 - the nine CAL targets of ``calibration_targets`` with their ranges, computed with the formulas of
-  ``tests/test_acceptance_core.py::calibration_metrics`` (the gate), so the numbers here are the
+  ``tests/test_acceptance_core.py::calibration_metrics``, so the numbers here are the
   numbers the slow test will judge;
-- the report-only market checks of section C: mean pickup wait, mean trip time, cancel and abandon
+- the report-only market checks: mean pickup wait, mean trip time, cancel and abandon
   rates, share of driver-hours spent repositioning (warning above ``REPOSITION_WARN``);
-- one Markdown row for the calibration table of ``docs/decisions.md``.
+- one Markdown row for a calibration table.
 
 Usage::
 
@@ -39,8 +39,8 @@ from sim.state import OrderStatus
 
 KNOBS = ("supply.fleet_size", "demand.demand_scale", "supply.shift_start_mixture", "demand.dest_decay_rings",
          "riders.alpha0", "riders.delta0")
-CHECK_RANGES = {"mean_pickup_wait_min": (3.0, 8.0), "mean_trip_time_min": (15.0, 25.0)}   # section C, report only
-REPOSITION_WARN = 0.15                                                                   # section B7
+CHECK_RANGES = {"mean_pickup_wait_min": (3.0, 8.0), "mean_trip_time_min": (15.0, 25.0)}   # report only
+REPOSITION_WARN = 0.15
 _DAY_S = 86400.0
 
 
@@ -62,7 +62,7 @@ def run_all_off(cfg: Config, n_seeds: int, *, n_procs: int | None = None) -> lis
 
 
 def cal_metrics(cfg: Config, results: Sequence[RunResult]) -> dict[str, float]:
-    """The nine CAL targets, pooled over seeds; same formulas as the slow test (decisions H-15, H-16, H-31)."""
+    """The nine CAL targets, pooled over seeds; same formulas as the slow test."""
     requested = sessions = 0
     p_treat = p_control = 0.0
     n_slack = n_tight = n_surplus = 0
@@ -104,16 +104,16 @@ def cal_metrics(cfg: Config, results: Sequence[RunResult]) -> dict[str, float]:
 
 
 def check_metrics(cfg: Config, results: Sequence[RunResult]) -> dict[str, float]:
-    """Report-only market checks of section C, pooled over seeds and in-window orders.
+    """Report-only market checks, pooled over seeds and in-window orders.
 
     ``reposition_share``: driver-hours of the window not idle, en route or on trip, over the driver-hours
     on shift (W0 schedule: ``on_shift`` at every slot midpoint); the remainder of an online driver's time
-    is repositioning (spec §4.9). On W1 the nominal schedule still counts absent drivers (attendance) and
+    is repositioning. On W1 the nominal schedule still counts absent drivers (attendance) and
     drivers paused by rain as on shift, so the on-shift hours are overstated and the share is an upper
     bound there (W0 is exact). ``p_request_all``: requested / sessions over every in-window session.
     ``share_tight_outside_5_8h``: (cell, slot) of the window with slack < 0.35 whose slot starts outside
-    5:00-8:59, over all such (cell, slot): the G8 check that W1's shocks create tightness beyond the
-    morning supply gap of W0 (phan_cong_v3, G8).
+    5:00-8:59, over all such (cell, slot): a check that W1's shocks create tightness beyond the
+    morning supply gap of W0.
     """
     world = build_world(cfg, Rng.from_config(cfg))
     wait_s = trip_min = 0.0
@@ -157,7 +157,7 @@ def check_metrics(cfg: Config, results: Sequence[RunResult]) -> dict[str, float]
 
 
 def per_seed_spread(cfg: Config, results: Sequence[RunResult]) -> dict[str, tuple[float, float]]:
-    """Min and max of every CAL target over the seeds taken one at a time (the gate pools them, but a
+    """Min and max of every CAL target over the seeds taken one at a time (the slow test pools them, but a
     target that only passes pooled is fragile)."""
     singles = [cal_metrics(cfg, [res]) for res in results]
     return {k: (min(m[k] for m in singles), max(m[k] for m in singles)) for k in singles[0]}
@@ -206,7 +206,7 @@ def format_report(cfg: Config, cal: dict[str, float], checks: dict[str, float], 
 
 
 def decisions_row(cfg: Config, cal: dict[str, float], checks: dict[str, float]) -> str:
-    """One row for the calibration table of docs/decisions.md (knobs | CAL targets | checks)."""
+    """One row for a calibration table (knobs | CAL targets | checks)."""
     kv = knob_values(cfg)
     mix = ";".join("-".join(f"{x:g}" for x in row) for row in kv["supply.shift_start_mixture"])
     knobs = (f"{kv['supply.fleet_size']} | {kv['demand.demand_scale']:g} | {mix} | "
@@ -233,7 +233,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     spread = per_seed_spread(cfg, results) if args.seeds > 1 else None
     print(format_report(cfg, cal, checks, args.seeds, spread))
     print()
-    print("decisions.md row:")
+    print("calibration table row:")
     print(decisions_row(cfg, cal, checks))
     runtime = [r.runtime_s for r in results]
     print(f"runtime per run (s): {', '.join(f'{x:.1f}' for x in runtime)}")

@@ -7,12 +7,13 @@ dist/
 .venv/
 venv/
 .pytest_cache/
+.pytest_tmp/
 .ipynb_checkpoints/
 
-# Simulator output (docs/schema.md) - không commit
+# Output mô phỏng (định dạng: docs/schema.md) - không commit
 runs/
 
-# Dữ liệu tải về (NYC, mốc P7) - không commit
+# Dữ liệu tải về (NYC TLC) - không commit
 data/
 
 # Editor / OS / công cụ cá nhân

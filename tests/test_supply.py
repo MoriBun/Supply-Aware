@@ -1,4 +1,4 @@
-"""docs/tests.md, M8 / M9: supply (spec §4.8; decisions T-02, T-08) and repositioning (spec §4.9; hard rule 5)."""
+"""Supply (sim/supply.py) and repositioning (sim/reposition.py; hard rule 5)."""
 
 import dataclasses
 
@@ -33,7 +33,7 @@ def cfg():
     return load_config(DEFAULT)
 
 
-# --- the periodic shift rule (T-02) ---------------------------------------------
+# --- the periodic shift rule ----------------------------------------------------
 
 
 def test_on_shift_wraps_around_midnight(cfg):
@@ -47,7 +47,7 @@ def test_on_shift_wraps_around_midnight(cfg):
 
 
 def test_no_cold_start_at_midnight(cfg):
-    # T-02: drivers whose shift covers t = 0 start IDLE at their origin cell.
+    # Drivers whose shift covers t = 0 start IDLE at their origin cell.
     ctx = started(cfg)
     d, sched = ctx.drivers, ctx.world.drivers
     online = on_shift(sched, 0.0)
@@ -94,7 +94,7 @@ def test_shift_start_puts_the_driver_at_the_origin_cell(cfg):
 
 
 def test_nobody_leaves_before_shift_end(cfg):
-    # docs/tests.md M8: early_exit_enabled = false -> no driver leaves before shift_end.
+    # early_exit_enabled = false -> no driver leaves before shift_end.
     assert cfg.supply.early_exit_enabled is False
     ctx = started(cfg)
     d = ctx.drivers
@@ -110,7 +110,7 @@ def test_nobody_leaves_before_shift_end(cfg):
     assert n_left >= d.n * 0.9                                 # nearly every driver ended a shift that day
 
 
-# --- busy drivers (docs/tests.md M8) --------------------------------------------
+# --- busy drivers ---------------------------------------------------------------
 
 
 def test_busy_driver_leaves_only_after_dropoff(cfg):
@@ -158,7 +158,7 @@ def test_busy_drivers_are_never_touched(cfg):
     np.testing.assert_array_equal(ctx.cells.idle, idle_by_cell(ctx))
 
 
-# --- always_on (T-08) ------------------------------------------------------------
+# --- always_on -------------------------------------------------------------------
 
 
 def test_always_on_keeps_every_driver_online(cfg):
@@ -198,7 +198,7 @@ def test_tiny_fixture(tiny_cfg):
     np.testing.assert_array_equal(ctx.cells.idle, idle_by_cell(ctx))
 
 
-# --- world summary (docs/plan.md, P1) -------------------------------------------
+# --- world summary --------------------------------------------------------------
 
 
 def test_world_summary(cfg):
@@ -211,7 +211,7 @@ def test_world_summary(cfg):
     assert "on shift         " + " ".join(f"{n:>3d}" for n in online) in text
 
 
-# --- M9 repositioning (docs/tests.md; spec §4.9) --------------------------------
+# --- repositioning --------------------------------------------------------------
 
 T0 = 12 * 3600.0
 
@@ -225,7 +225,7 @@ def park(ctx, driver_id, cell, idle_since):
 
 
 def test_repositioning_never_reads_demand_or_snapshots(cfg):
-    # docs/tests.md M9: a monitor that raises on any use; the same for sessions, orders, policy, budget.
+    # A monitor that raises on any use; the same for sessions, orders, policy, budget.
     ctx = make_context(cfg)
     for i in range(20):
         park(ctx, i, i, idle_since=0.0)

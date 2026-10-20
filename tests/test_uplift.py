@@ -1,4 +1,4 @@
-"""Task H5.2: analysis/uplift.py (DR-learner, score functions)."""
+"""analysis/uplift.py (DR-learner, score functions)."""
 
 import dataclasses
 import json
@@ -92,12 +92,12 @@ def test_fit_is_deterministic():
 # --- saved models and score functions --------------------------------------------
 
 
-@pytest.mark.parametrize("name", sorted(set(uplift.MODEL_SUFFIXES.values())))    # W0 and W1 models (H9.1)
+@pytest.mark.parametrize("name", sorted(set(uplift.MODEL_SUFFIXES.values())))    # W0 and W1 models
 def test_saved_models_are_well_formed(name):
     meta = json.loads((uplift.MODEL_DIR / f"{name}.json").read_text(encoding="utf-8"))
     assert meta["outcome"] == "completed" and meta["run_id"].startswith("generate-")
     assert meta["sample"] == name.removeprefix("dr_").removesuffix("_w1") and meta["slack_cap"] > 0
-    assert meta["mean_paid_per_offer_vnd"] > 1000      # đồng, not the pre-B9 dollars (S9 refit)
+    assert meta["mean_paid_per_offer_vnd"] > 1000      # đồng, not the old dollars
     assert meta["x_cols"] == uplift.X_COLS and meta["s_cols"] == uplift.S_COLS
     for key in uplift.BOOSTER_COLS:
         assert (uplift.MODEL_DIR / f"{name}_{key}.txt").exists()

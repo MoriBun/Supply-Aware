@@ -52,7 +52,7 @@ def test_traced_run_matches_engine(tiny_cfg: Config) -> None:
         x, y = expected.orders.col(col), result.orders.col(col)
         assert np.array_equal(x, y, equal_nan=x.dtype.kind == "f"), col
     # Every published slot has a snapshot; a run may end in cool-down inside a slot that started but was
-    # never published (longer trips on the Hanoi grid, H7.1), so the trace can hold one more slot.
+    # never published (longer trips on the Hanoi grid), so the trace can hold one more slot.
     published = sum(rec["published"] for rec in trace.slots)
     assert len(expected.snapshots) == len(result.snapshots) == published
     assert len(trace.slots) - published in (0, 1) and all(rec["published"] for rec in trace.slots[:published])
@@ -247,7 +247,7 @@ def test_api_sweep_finds_theta_star(tmp_path: Path) -> None:
 
 
 def test_api_defaults_offer_both_worlds_and_no_figure_endpoint(tmp_path: Path) -> None:
-    """S10 (T-49): W0/W1 presets with existing config layers, scope city accepted, the figure gallery is gone."""
+    """W0/W1 presets with existing config layers, scope city accepted, the figure gallery is gone."""
     pytest.importorskip("fastapi")
     from fastapi.testclient import TestClient
 

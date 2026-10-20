@@ -1,4 +1,4 @@
-"""Voucher budget ledger (spec §4.3, decisions L11, T-03).
+"""Voucher budget ledger.
 
 Money is kept in integer dong so the invariant ``spent + committed + reserved
 <= B`` is exact. The ledger is keyed by ``session_id``; every reservation belongs
@@ -21,11 +21,11 @@ import numpy as np
 
 from sim.config import Config
 
-DONG_PER_VND = 1                   # ledger unit = 1 đồng (decisions H-33; was 100 cents per USD)
+DONG_PER_VND = 1                   # ledger unit = 1 đồng (was 100 cents per USD)
 
 
 def resolve_budget_vnd(cfg: Config, pilot_spent_by_period_vnd=None) -> float:
-    """Budget B in VND for this configuration (spec §4.3).
+    """Budget B in VND for this configuration.
 
     ``budget.mode = fixed`` returns ``budget.fixed_vnd``. ``fraction_of_all_on``
     returns ``fraction`` times the mean voucher spend per budget period of the

@@ -1,4 +1,4 @@
-"""docs/tests.md, section "Cấu hình": unknown keys, --set overrides, config_hash."""
+"""Config loading (sim/config.py): unknown keys, --set overrides, config_hash."""
 
 import dataclasses
 
@@ -23,7 +23,7 @@ def write_yaml(tmp_path, data, name="cfg.yaml"):
 
 
 def test_default_yaml_loads(default_yaml):
-    # Structural checks only: values that P3 may calibrate (grid_radius, fleet, shifts...) are not asserted.
+    # Structural checks only: values that calibration may change (grid_radius, fleet, shifts...) are not asserted.
     cfg = load_config(default_yaml)
     assert cfg.time.tick_s == 60
     assert cfg.policy.threshold.kappa == "auto"
@@ -34,11 +34,10 @@ def test_default_yaml_loads(default_yaml):
 
 
 def test_new_keys_load(default_yaml):
-    # Keys added by decisions T-18.
     cfg = load_config(default_yaml)
     assert cfg.time.window_min is None
     assert cfg.supply.shift_mode == "schedule"
-    assert len(cfg.throughput.demand_scale_grid) == 10     # 0,25…2,5 on the Hanoi scale (decisions T-43; was 16)
+    assert len(cfg.throughput.demand_scale_grid) == 10     # 0,25…2,5 on the Hanoi scale (was 16)
     assert cfg.throughput.reference_hour == 18
     assert cfg.runner.n_procs is None
 
@@ -54,7 +53,7 @@ def test_tiny_overlay(tiny_cfg, default_yaml):
 
 
 
-# --- derived lengths (decisions H-03) -----------------------------------------
+# --- derived lengths ----------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -187,8 +186,8 @@ def test_set_wrong_type_raises(default_yaml, assignment):
         "calibration_targets.mean_trip_km=[8.0, 5.0]",
         "time.window_min=100",                 # not a multiple of slot_min (15)
         "time.window_min=0",
-        "time.window_min=1500",                # > 1 day but not whole days (H-02)
-        "time.warmup_min=45",                  # not a multiple of experiment.block_min (60) (H-01)
+        "time.window_min=1500",                # > 1 day but not whole days
+        "time.warmup_min=45",                  # not a multiple of experiment.block_min (60)
         "throughput.reference_hour=24",
         "runner.n_procs=0",
         "policy.threshold.kappa_max_iter=-1",
@@ -233,15 +232,14 @@ def test_config_is_frozen(default_yaml):
         cfg.space.grid_radius = 5
 
 
-# --- Sprint 7 contract B9 (decisions H-29 ... H-33) ---------------------------
+# --- model option keys --------------------------------------------------------
 
 
-def test_s7_contract_keys_load_with_old_behaviour(default_yaml):
-    # B9: every new key exists; the keys that change the model default to the old behaviour
-    # until the task that implements them switches the default (H-29).
+def test_model_option_keys_load_with_their_defaults(default_yaml):
+    # Every model option key exists with its default value.
     cfg = load_config(default_yaml)
-    assert cfg.matching.ring_tiebreak == "most_idle"                 # H7.2 switched the default
-    assert cfg.cancel.exact_time is True                             # H7.3 switched the default
+    assert cfg.matching.ring_tiebreak == "most_idle"
+    assert cfg.cancel.exact_time is True
     assert cfg.shocks.enabled is False
     assert cfg.policy.threshold.scope == "cell"
     assert len(cfg.shocks.events.venues) >= 1 and all(len(row) == 7 for row in cfg.shocks.events.venues)
@@ -256,7 +254,7 @@ def test_s7_contract_keys_load_with_old_behaviour(default_yaml):
     ["matching.ring_tiebreak=most_idle", "cancel.exact_time=true", "shocks.enabled=true",
      "policy.threshold.scope=city", "policy.threshold.score_fn=oracle"],
 )
-def test_s7_contract_values_are_accepted(default_yaml, assignment):
+def test_model_option_values_are_accepted(default_yaml, assignment):
     load_config(default_yaml, [assignment])
 
 
@@ -264,7 +262,7 @@ def test_s7_contract_values_are_accepted(default_yaml, assignment):
     "assignment",
     ["matching.ring_tiebreak=random", "cancel.exact_time=1", "policy.threshold.scope=cluster"],
 )
-def test_s7_contract_wrong_values_raise(default_yaml, assignment):
+def test_model_option_wrong_values_raise(default_yaml, assignment):
     with pytest.raises(ConfigError):
         load_config(default_yaml, [assignment])
 
@@ -284,6 +282,6 @@ def test_s7_contract_wrong_values_raise(default_yaml, assignment):
         "calibration_targets.busy_rel_h7=[0.85, 0.55]",
     ],
 )
-def test_s7_contract_out_of_range_raises(default_yaml, assignment):
+def test_model_option_out_of_range_raises(default_yaml, assignment):
     with pytest.raises(ConfigError, match="invalid config"):
         load_config(default_yaml, [assignment])

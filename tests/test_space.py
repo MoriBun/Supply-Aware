@@ -1,4 +1,4 @@
-"""docs/tests.md, M1 SpaceTime; plus the pickup search shared with M5 (spec §4.1, §4.5)."""
+"""SpaceTime (sim/space.py); plus the pickup search shared with matching."""
 
 import math
 
@@ -76,12 +76,12 @@ def test_neighbour_directions_follow_axial_offsets(space):
 
 
 @pytest.mark.parametrize("R, sizes, max_dist", [
-    (3, [3, 3, 4, 6, 7, 7, 7], 1),         # 37 cells, Handoff B1 (docs/phan_cong.md)
-    (4, [7, 7, 7, 8, 9, 11, 12], 2),       # 61 cells, Hanoi grid of H7.1 (decisions H-36)
+    (3, [3, 3, 4, 6, 7, 7, 7], 1),         # 37 cells, the old grid
+    (4, [7, 7, 7, 8, 9, 11, 12], 2),       # 61 cells, Hanoi grid
 ])
 def test_clusters_of_seven_have_spec_sizes(default_yaml, R, sizes, max_dist):
     # Cluster centres (q + 5r) mod 7 == 0, each cell to the nearest centre by torus distance,
-    # ties to the smaller cell id (spec §4.10).
+    # ties to the smaller cell id.
     space = make_space(default_yaml, f"space.grid_radius={R}")
     centres = np.flatnonzero((space.cell_q.astype(int) + 5 * space.cell_r.astype(int)) % 7 == 0)
     nearest = centres[np.argmin(space.D[:, centres], axis=1)]
@@ -138,7 +138,7 @@ def test_travel_time_matches_formula(default_yaml, space):
     assert space.center_dist_km == pytest.approx(s)
 
 
-# --- ETA_in (T-04) ------------------------------------------------------------
+# --- ETA_in -------------------------------------------------------------------
 
 
 def test_eta_in_monotone_with_floor(space):
@@ -154,7 +154,7 @@ def test_eta_in_monotone_with_floor(space):
 
 
 def test_eta_in_reaches_floor_with_defaults(space):
-    # The floor is reachable with default parameters, which is why T-04 relaxed the test.
+    # The floor is reachable with default parameters, so ETA_in only decreases strictly above it.
     assert space.eta_in(60, 18) == space.eta_floor_min
 
 
@@ -163,7 +163,7 @@ def test_eta_in_rejects_zero_idle(space):
         space.eta_in(0, 12)
 
 
-# --- pickup search and quoted ETA (spec §4.1, §4.5) ---------------------------
+# --- pickup search and quoted ETA ---------------------------------------------
 
 
 def test_pickup_in_own_cell_uses_eta_in(space):
@@ -202,7 +202,7 @@ def test_no_idle_driver_means_no_supply(space):
 
 
 def test_max_pickup_eta_limits_the_search(default_yaml):
-    # Tight limit: ring 1 is reachable, ring 2 is not (default T is far below 30 min, spec notes).
+    # Tight limit: ring 1 is reachable, ring 2 is not (default T is far below 30 min).
     base = make_space(default_yaml)
     z, h = 0, 18
     t1 = float(base.T[base.rings[z][0][0], z, h])
@@ -262,7 +262,7 @@ def test_tiny_fixture_builds(tiny_cfg):
     assert sp.D.max() == 1
 
 
-# --- ring tie-break (H7.2, KN 2.1, decisions H-37) -------------------------------------------
+# --- ring tie-break --------------------------------------------------------------------------
 
 
 def test_most_idle_tiebreak_takes_the_ring_cell_with_most_idle_drivers(default_yaml):
@@ -274,6 +274,6 @@ def test_most_idle_tiebreak_takes_the_ring_cell_with_most_idle_drivers(default_y
     src, eta = space.find_pickup(z, h, idle)
     assert src == int(ring1[2])                                   # most idle; the tie 3 = 3 goes to the smaller id
     assert eta == pytest.approx(float(space.T[ring1[2], z, h]))
-    assert space.quote_eta(z, h, idle) == (pytest.approx(eta), False)   # quote and match share the rule (H-04)
+    assert space.quote_eta(z, h, idle) == (pytest.approx(eta), False)   # quote and match share the rule
     old = make_space(default_yaml, "matching.ring_tiebreak=lowest_id")
-    assert old.find_pickup(z, h, idle)[0] == int(ring1[0])        # pre-S7 rule: smallest id
+    assert old.find_pickup(z, h, idle)[0] == int(ring1[0])        # old rule: smallest id

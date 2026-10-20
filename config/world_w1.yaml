@@ -1,9 +1,9 @@
-# Thế giới W1: W0 đã hiệu chỉnh (default.yaml, T-42) + biến động tự nhiên (spec §4.14, ĐX B5, H-30, H-39).
+# Thế giới W1: W0 đã hiệu chỉnh (default.yaml) + biến động tự nhiên.
 # Lớp phủ: python -m sim run --mode <mode> --config config/default.yaml --config config/world_w1.yaml
-# Chỉ chứa các khóa khác default.yaml (decisions L1). Không hiệu chỉnh lại W1 (T8.3): các giá trị biến động
+# Chỉ chứa các khóa khác default.yaml. Không hiệu chỉnh lại W1: các giá trị biến động
 # giữ nguyên như mục shocks: của default.yaml, chỉ bật lên.
 shocks:
   enabled: true
 supply:
   fleet_size: 1278                # = fleet_size W0 (1.150) / attendance.p_work (0,90), làm tròn, để số xe
-                                  # đi làm trung bình mỗi ngày bằng W0 [T8.3, phan_cong_v3; T-42]
+                                  # đi làm trung bình mỗi ngày bằng W0

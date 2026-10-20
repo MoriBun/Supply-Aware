@@ -1,7 +1,7 @@
-"""Fakes and builders shared by the tests (docs/phan_cong.md, task T1.3).
+"""Fakes and builders shared by the tests.
 
 Everything here is deterministic and free of randomness, so a test that uses a
-fake never depends on the other person's module.
+fake never depends on the module the fake stands in for.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ NAN = float("nan")
 
 
 class ForbiddenAccess:
-    """Stand-in for a ``SimContext`` field a step must not touch (docs/tests.md, M9; hard rule 5).
+    """Stand-in for a ``SimContext`` field a step must not touch (hard rule 5).
 
     Any attribute access raises, so ``reposition.step`` reading ``ctx.monitor``
     fails loudly in a test.
@@ -122,7 +122,7 @@ def published_store(n_cells: int, n_slots: int, slots_per_day: int = 96) -> Snap
 
 
 # ---------------------------------------------------------------------------
-# Score function and engine stand-ins, importable as "tests.fakes:<name>" (spec §7)
+# Score function and engine stand-ins, importable as "tests.fakes:<name>"
 # ---------------------------------------------------------------------------
 
 
@@ -173,7 +173,7 @@ def fake_offered_share(cfg, policy) -> tuple[float, float]:
 
 def fake_run(cfg, world, policy, rng, *, log_level: str = "minimal", profile: bool = False,
              budget_vnd: float | None = None, enforce_budget: bool | None = None) -> RunResult:
-    """Deterministic stand-in for ``engine.run`` with a WGC-like throughput hump (docs/phan_cong.md T1.4, B4).
+    """Deterministic stand-in for ``engine.run`` with a WGC-like throughput hump.
 
     Completed trips per hour rise with demand, peak when requests match the fleet's
     capacity and fall beyond it; slack falls and pickup ETA rises with demand. The
@@ -245,7 +245,7 @@ def fake_run_congested(cfg, world, policy, rng, **kwargs) -> RunResult:
     The completed share of offered sessions is ``0.2 + 0.7 x (1 - offered share)``,
     spread evenly over the score order. A kappa-auto pilot at ``kappa = -inf``
     offers to everyone and so under-predicts the spend of a run at a higher kappa,
-    which is the congestion effect behind decisions H-21 (Q26).
+    which is the congestion effect behind the kappa-auto reruns.
     """
     res = fake_run(cfg, world, policy, rng, **kwargs)
     share = 0.2 + 0.7 * (1.0 - res.profile["offered"])

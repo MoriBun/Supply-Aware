@@ -1,5 +1,4 @@
-"""Descriptive statistics and figures of a 28-day history data set, W0 next to W1 (guide
-``huong_dan_thong_ke_du_lieu.md``: the "Dữ liệu sinh ra" slides and section 4.1.2 of the report).
+"""Descriptive statistics and figures of a 28-day history data set, W0 next to W1.
 
 Reads only ``observed/``, ``market/`` and ``meta/`` of a ``generate`` run directory (docs/schema.md),
 never ``hidden/``. Every quantity is taken over the evaluation window (``in_window``: the 60-minute
@@ -10,7 +9,7 @@ calendar day 0, so window day k runs from 1:00 of day k to 1:00 of day k + 1 and
 24 hours (calendar days would leave day 0 with 23 hours and a one-hour day 28). Shocks are logged per
 calendar day (``meta/shocks.day``); rain and events of calendar day k fall in window day k.
 
-(cell, slot) of the window: the slot **starts** inside the window, the filter of the G8 check
+(cell, slot) of the window: the slot **starts** inside the window, the filter of the tightness check
 (``analysis.calibrate.check_metrics``); 61 cells x 28 x 96 = 163.968 per world.
 
 CLI::
@@ -18,7 +17,7 @@ CLI::
     python -m analysis.data_stats --w0 runs/s8/w0/legacy_28d --w1 runs/s8/w1/legacy_28d --out docs/figures
 
 writes ``07_du_lieu_thong_ke.csv`` (raw numbers, columns ``chi_tieu, w0, w1``), the ``07_du_lieu_*.png``
-figures, and prints the rounded markdown table for ``docs/datasets.md``.
+figures, and prints the rounded markdown table.
 """
 
 from __future__ import annotations
@@ -41,7 +40,7 @@ from sim.space import n_cells_for_radius
 
 DAY_S = 86400.0
 COMPLETED, CANCELLED, ABANDONED = "Completed", "Cancelled", "Abandoned"
-TIGHT_SLACK = 0.35          # (cell, slot) "căng": slack < 0.35 (CAL target, G8, H-14)
+TIGHT_SLACK = 0.35          # (cell, slot) "căng": slack < 0.35 (CAL target)
 SURPLUS_SLACK = 1.0         # (cell, slot) "dư": slack > 1 (inf counts as surplus)
 LEGACY_MECHANISMS = ("legacy_rule", "legacy_eps")
 EXPLORE = "explore"
@@ -58,7 +57,7 @@ ORDER_COLUMNS = ["rider_id", "status", "request_time_s", "matched_time_s", "pick
                  "trip_km", "trip_time_min", "voucher_value_vnd", "in_window"]
 SNAPSHOT_COLUMNS = ["cell", "slot", "hour", "slack"]
 
-# (key, label) of every number of the table; the first two characters are the indicator (1-17) of the guide.
+# (key, label) of every number of the table; the first two characters are the indicator number (1-17).
 METRICS: tuple[tuple[str, str], ...] = (
     ("01a_so_o", "Số ô"),
     ("01b_so_khach", "Số khách"),
@@ -385,7 +384,7 @@ def describe_dataset(run_dir: Path | str) -> dict[str, float]:
 
 
 def stats_frame(w0: dict[str, float], w1: dict[str, float]) -> pd.DataFrame:
-    """CSV layout of the guide: ``chi_tieu, w0, w1``, raw numbers."""
+    """CSV layout ``chi_tieu, w0, w1``, raw numbers."""
     return pd.DataFrame({"chi_tieu": list(METRIC_KEYS), "w0": [w0[k] for k in METRIC_KEYS],
                          "w1": [w1[k] for k in METRIC_KEYS]})
 
@@ -700,7 +699,7 @@ def _single(panel, *args, figsize=(6.5, 4.4), **kwargs):
 
 
 def write_figures(w0: Dataset, w1: Dataset, out_dir: Path) -> list[Path]:
-    """Every ``07_du_lieu_*.png`` of the guide (main 2 x 2, the four panels, the two optional figures)."""
+    """Every ``07_du_lieu_*.png`` figure (main 2 x 2, the four panels, the two optional figures)."""
     plt = _pyplot()
     paths = []
     with plt.rc_context(STYLE):

@@ -1,4 +1,4 @@
-"""analysis/calibrate.py (task T8.1 helper): the CAL numbers it prints are the ones the slow gate computes."""
+"""analysis/calibrate.py: the CAL numbers it prints are the ones the slow acceptance test computes."""
 
 import dataclasses
 import json
@@ -21,7 +21,7 @@ def tiny_round():
     return cfg, results
 
 
-def test_cal_metrics_match_the_slow_gate_number_for_number(tiny_round):
+def test_cal_metrics_match_the_slow_acceptance_test_number_for_number(tiny_round):
     cfg, results = tiny_round
     ours = calibrate.cal_metrics(cfg, results)
     gate = gate_calibration_metrics(cfg, n_seeds=2)

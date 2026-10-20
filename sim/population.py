@@ -1,7 +1,5 @@
 """World generation from world_seed: cell weights, riders, driver shifts.
 
-Spec: docs/spec.md §4.2, §4.8. Milestone: P1 (task H1.2).
-
 The world is a pure function of ``cfg`` and ``world_seed``: it never depends on
 ``run_seed`` or on the policy. Every random quantity has its own WORLD generator
 keyed by ``(WorldPart, variable index)``, so rider ``i`` and driver ``j`` keep
@@ -28,7 +26,7 @@ class WorldPart(enum.IntEnum):
     CELL_WEIGHT = 1
     RIDERS = 2
     DRIVERS = 3
-    VENUES = 4         # event venues of shocks.events (decisions H-30): fixed by world_seed
+    VENUES = 4         # event venues of shocks.events: fixed by world_seed
 
 
 @dataclass
@@ -59,7 +57,7 @@ class Riders:
 
 @dataclass
 class DriverSchedule:
-    """Per-driver shift, periodic by day (spec §4.8, decisions T-02)."""
+    """Per-driver shift, periodic by day."""
 
     driver_id: np.ndarray     # int32
     origin_cell: np.ndarray   # int16
@@ -72,7 +70,7 @@ class DriverSchedule:
 
 
 def on_shift(schedule: DriverSchedule, t: float) -> np.ndarray:
-    """Periodic shift rule (T-02): on shift when ``((t/3600 - shift_start) mod 24) < shift_len``."""
+    """Periodic shift rule: on shift when ``((t/3600 - shift_start) mod 24) < shift_len``."""
     return ((t / 3600.0 - schedule.shift_start_h) % 24.0) < schedule.shift_len_h
 
 
@@ -83,7 +81,7 @@ def online_by_hour(schedule: DriverSchedule) -> np.ndarray:
 
 @dataclass
 class DemandTables:
-    """Cumulative tables for sampling a session's rider and destination (spec §4.2).
+    """Cumulative tables for sampling a session's rider and destination.
 
     Each table is an "offset CDF": entry ``i`` of group ``g`` holds ``g + F_g(i)``
     with ``F_g`` the cumulative probability inside the group. One ``searchsorted``
@@ -129,7 +127,7 @@ def build_world(cfg: Config, rng: Rng) -> World:
 
 
 def describe_world(cfg: Config, world: World) -> str:
-    """Plain-text summary of the static world (docs/plan.md, P1): cells, travel times, riders, fleet by hour."""
+    """Plain-text summary of the static world: cells, travel times, riders, fleet by hour."""
     space, riders, d = world.space, world.riders, cfg.demand
     off_diag = ~np.eye(space.n_cells, dtype=bool)
     t_by_hour = np.array([space.T[:, :, h][off_diag].mean() for h in range(24)])
@@ -159,14 +157,14 @@ def describe_world(cfg: Config, world: World) -> str:
 
 
 def _cell_weights(cfg: Config, rng: Rng, n_cells: int) -> np.ndarray:
-    """``w_z ~ LogNormal(0, cell_weight_sigma)``, normalized to mean 1 (spec §4.2)."""
+    """``w_z ~ LogNormal(0, cell_weight_sigma)``, normalized to mean 1."""
     gen = rng.rng_for(Stream.WORLD, WorldPart.CELL_WEIGHT, 0)
     w = gen.lognormal(0.0, cfg.demand.cell_weight_sigma, size=n_cells)
     return w / w.mean()
 
 
 def _riders(cfg: Config, rng: Rng, cell_weight: np.ndarray) -> Riders:
-    """Rider attributes and behavioural coefficients (spec §4.2, "Sinh rider")."""
+    """Rider attributes and behavioural coefficients."""
     rc = cfg.riders
     n = cfg.demand.n_riders
     gens = _part_generators(rng, WorldPart.RIDERS)
@@ -182,7 +180,7 @@ def _riders(cfg: Config, rng: Rng, cell_weight: np.ndarray) -> Riders:
 
     alpha = rc.alpha0 + rc.alpha_freq * zf + rc.alpha_u * u_latent + next(gens).normal(0.0, rc.alpha_noise_sd, n)
     seg_mult = np.asarray(rc.beta_price_seg_mult)[x_segment]
-    # beta_price_per_kvnd is per 1.000đ; the logit takes the fare in đồng (decisions H-33).
+    # beta_price_per_kvnd is per 1.000đ; the logit takes the fare in đồng.
     beta_price = -(rc.beta_price_per_kvnd / 1000.0) * seg_mult * np.exp(next(gens).normal(0.0, rc.beta_price_noise_sd, n))
     beta_eta = -rc.beta_eta_per_min * np.exp(next(gens).normal(0.0, rc.beta_eta_noise_sd, n))
     delta = (rc.delta0 + rc.delta_u * u_latent + np.asarray(rc.delta_seg)[x_segment]
@@ -203,7 +201,7 @@ def _riders(cfg: Config, rng: Rng, cell_weight: np.ndarray) -> Riders:
 
 
 def _drivers(cfg: Config, rng: Rng, cell_weight: np.ndarray) -> DriverSchedule:
-    """Shift start, shift length and origin cell of every driver (spec §4.8)."""
+    """Shift start, shift length and origin cell of every driver."""
     sc = cfg.supply
     n = sc.fleet_size
     gens = _part_generators(rng, WorldPart.DRIVERS)

@@ -1,4 +1,4 @@
-"""Command line: ``python -m sim run --mode <mode> --config <yaml> [--set a.b=c ...] [--out DIR]`` (spec §7)."""
+"""Command line: ``python -m sim run --mode <mode> --config <yaml> [--set a.b=c ...] [--out DIR]``."""
 
 from __future__ import annotations
 
@@ -15,10 +15,10 @@ from sim.config import ConfigError, config_hash, load_config
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="python -m sim", description="Ride-hailing simulator (docs/spec.md).")
+    parser = argparse.ArgumentParser(prog="python -m sim", description="Ride-hailing simulator.")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    run = sub.add_parser("run", help="run one of the modes of spec §7")
+    run = sub.add_parser("run", help="run one of the modes (README, section \"Các mode chạy\")")
     run.add_argument("--mode", required=True, choices=runner.MODES)
     run.add_argument("--config", action="append", required=True, metavar="YAML",
                      help="config file; repeat to layer files (later files override earlier ones)")

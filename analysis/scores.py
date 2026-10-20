@@ -1,9 +1,9 @@
-"""Uplift scores for the rider tier of pi_theta, learned from simulator output (tasks H4.2, H5.1; handoff B8).
+"""Uplift scores for the rider tier of pi_theta, learned from simulator output.
 
 Use one as ``policy.threshold.score_fn = "analysis.scores:tau_x_baseline"``. A score
 function only reads columns of the ``SessionBatch`` it is given, is deterministic, and
 loads its table from a small JSON file next to this module, so it also works inside a
-spawned worker process (docs/phan_cong.md, B8).
+spawned worker process.
 
 ``tau_x_baseline`` is the simple baseline: the difference in completion rate between
 treated and untreated sessions of the **explore slice** of the legacy data (the randomized
@@ -11,12 +11,12 @@ treated and untreated sessions of the **explore slice** of the legacy data (the 
 effect. It uses observed columns only.
 
 ``tau_per_dollar_baseline`` divides that effect by the expected voucher cost of an offer
-in the stratum (a voucher is only paid when the trip completes). The budget B is in
-dollars, so under B the offers worth making first are those with the most extra trips
-per dollar, not the most extra trips per offer.
+in the stratum (a voucher is only paid when the trip completes). The budget B is a sum
+of money (đồng), so under B the offers worth making first are those with the most extra trips
+per đồng of voucher, not the most extra trips per offer.
 
 ``predict_frame`` gives the same scores for every session of a saved run, so the ranking can be
-judged offline (Qini / AUUC, T5.2) by joining on ``session_id``; the CLI writes it to parquet.
+judged offline (Qini / AUUC) by joining on ``session_id``; the CLI writes it to parquet.
 """
 
 from __future__ import annotations
@@ -117,7 +117,7 @@ def tau_x_baseline(batch, s_hat: np.ndarray) -> np.ndarray:
 
 
 def tau_per_dollar_baseline(batch, s_hat: np.ndarray) -> np.ndarray:
-    """Score function: estimated extra completed trips per voucher dollar, from rider features only."""
+    """Score function: estimated extra completed trips per đồng of voucher, from rider features only."""
     edges, tau, cost = load_table()
     return score_from_table(batch.x_freq, batch.x_segment, edges, tau / cost)
 

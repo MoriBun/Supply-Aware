@@ -1,4 +1,4 @@
-"""docs/tests.md §2, integration: the real tick loop (engine.run) with every step of spec §4.0."""
+"""Integration: the real tick loop (engine.run) with every step."""
 
 import numpy as np
 import pytest
@@ -16,7 +16,7 @@ DEFAULT = ROOT / "config" / "default.yaml"
 TINY = [DEFAULT, ROOT / "tests" / "fixtures" / "tiny.yaml"]
 OFFLINE, IDLE, EN_ROUTE, ON_TRIP, REPOSITIONING = (int(s) for s in DriverStatus)
 WAITING, MATCHED, O_ON_TRIP, COMPLETED, ABANDONED, CANCELLED, TRUNCATED = (int(s) for s in OrderStatus)
-POLICIES = ("all_off", "all_on")      # the other policies join at T3.1 ("smoke_day with every policy")
+POLICIES = ("all_off", "all_on")      # the other policies: tests/test_acceptance.py ("smoke day with every policy")
 
 
 def simulate(cfg, policy, **kw):
@@ -55,7 +55,7 @@ def test_smoke_day(day, policy):
 def test_voucher_raises_requests(day):
     _, results = day
     assert results["all_on"].n_requests > results["all_off"].n_requests
-    assert results["all_on"].V_profit_vnd < results["all_off"].V_profit_vnd  # a 20% voucher eats the margin (D1)
+    assert results["all_on"].V_profit_vnd < results["all_off"].V_profit_vnd  # a 20% voucher eats the margin
 
 
 # --- test_conservation ----------------------------------------------------------
@@ -148,7 +148,7 @@ def test_cooldown_limit_truncates_open_orders():
 # --- test_driver_state_consistency ----------------------------------------------
 
 
-# W1 (H7.4/H7.5): schedule shifts with attendance, jitter, an event and a rain spell inside the window, half
+# W1: schedule shifts with attendance, jitter, an event and a rain spell inside the window, half
 # of the drivers stopping while it rains.
 W1_TICK_CHECK = ["shocks.enabled=true", "supply.fleet_size=30", "shocks.rain.p_per_day=1",
                  "shocks.rain.start_hour_range=[1.2, 1.5]", "shocks.rain.duration_h_range=[0.5, 0.8]",
@@ -224,7 +224,7 @@ def test_policies_face_the_same_sessions(day):
         np.testing.assert_array_equal(off.col(name), on.col(name), err_msg=name)
 
 
-# --- H7.2: ring tie-break (KN 2.1, decisions H-37) -------------------------------------------
+# --- ring tie-break --------------------------------------------------------------------------
 
 
 def _source_cell_corr(tiebreak: str) -> float:
@@ -242,7 +242,7 @@ def _source_cell_corr(tiebreak: str) -> float:
 
 
 def test_most_idle_tiebreak_removes_the_cell_id_bias_on_a_symmetric_world():
-    # Every cell of a ring has the same T, so lowest_id always lends from the smallest id (KN 2.1:
-    # corr -0,875 on the old grid). most_idle must make the cell id irrelevant.
+    # Every cell of a ring has the same T, so lowest_id always lends from the smallest id (corr
+    # -0,875 on the old grid). most_idle must make the cell id irrelevant.
     assert _source_cell_corr("lowest_id") < -0.5
     assert abs(_source_cell_corr("most_idle")) < 0.3

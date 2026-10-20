@@ -1,7 +1,5 @@
 """M4 RiderChoice: logit booking decision and hidden ground-truth probabilities.
 
-Spec: docs/spec.md §4.4. Milestone: P1 (task H1.3).
-
 Contract: ``decide`` reads the rows ``ctx.tick_sessions`` of ``ctx.sessions``,
 writes ``requested`` and the hidden ``p_request_*`` columns, creates one order
 per booking (``ctx.orders``, columns of step "decide"), sets ``order_idx`` on
@@ -23,7 +21,7 @@ from sim.state import SimContext
 
 
 def request_probability(alpha, beta_price, beta_eta, delta, fare_vnd, voucher_vnd, eta_min) -> np.ndarray:
-    """Booking probability of spec §4.4 [report (5)], vectorized, float64.
+    """Booking probability, vectorized, float64.
 
     ``logit = alpha + beta_price * (p - v) + beta_eta * eta_q + delta * 1[v > 0]``,
     ``P = 1 / (1 + exp(-logit))``.
@@ -48,7 +46,7 @@ def decide(ctx: SimContext, t: float) -> None:
     alpha, beta_price = riders.alpha[rider], riders.beta_price[rider]
     beta_eta, delta = riders.beta_eta[rider], riders.delta_promo[rider]
     fare = sessions.quoted_fare_vnd[rows].astype(np.float64)
-    eta = sessions.quoted_eta_min[rows]            # already max_pickup_eta_min when no_supply (spec §4.1)
+    eta = sessions.quoted_eta_min[rows]            # already max_pickup_eta_min when no_supply
     granted_dong = sessions.voucher_dong[rows]
     granted_vnd = granted_dong / DONG_PER_VND
 
@@ -82,7 +80,7 @@ def decide(ctx: SimContext, t: float) -> None:
     orders = ctx.orders
     o_start, o_stop = orders.reserve(len(booked))
     o_rows = slice(o_start, o_stop)
-    orders.order_id[o_rows] = session_id[booked]       # order_id = session_id (spec §2)
+    orders.order_id[o_rows] = session_id[booked]       # order_id = session_id
     orders.session_id[o_rows] = session_id[booked]
     orders.rider_id[o_rows] = rider[booked]
     orders.pu_cell[o_rows] = pu_cell
@@ -98,4 +96,4 @@ def decide(ctx: SimContext, t: float) -> None:
 
     new_per_cell = np.bincount(pu_cell, minlength=ctx.n_cells)
     ctx.cells.waiting += new_per_cell.astype(ctx.cells.waiting.dtype)
-    ctx.slot_counters.n_requests += new_per_cell.astype(ctx.slot_counters.n_requests.dtype)  # by open time (T-15)
+    ctx.slot_counters.n_requests += new_per_cell.astype(ctx.slot_counters.n_requests.dtype)  # by open time

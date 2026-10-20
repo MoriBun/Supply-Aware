@@ -1,8 +1,8 @@
-"""FixedPolicy: all_on / all_off (spec §6).
+"""FixedPolicy: all_on / all_off.
 
 Every cell is on (or off) in every slot; in an "on" cell every session is
 offered. The budget, when enforced, is applied by the voucher layer like for
-any other policy (decisions T-12).
+any other policy.
 """
 
 from __future__ import annotations

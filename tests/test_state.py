@@ -1,4 +1,4 @@
-"""Sprint-0 contract: codes, buffers, counters, Clock (docs/phan_cong.md, S0 item 1)."""
+"""State contract: codes, buffers, counters, Clock."""
 
 import numpy as np
 import pytest

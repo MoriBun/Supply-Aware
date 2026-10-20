@@ -1,6 +1,6 @@
 """Hourly demand, wait time and busy drivers from NYC TLC high-volume FHV trips, next to the simulator.
 
-A read-only probe (decisions Q25, H-20): it changes no parameter. Data (not committed, see docs/datasets.md):
+A read-only probe: it changes no parameter. Data (not committed; download it to ``runs/tlc/``):
 
     runs/tlc/fhvhv_tripdata_2024-03.parquet   https://d37ci6vzurychx.cloudfront.net/trip-data/fhvhv_tripdata_2024-03.parquet
     runs/tlc/taxi_zone_lookup.csv             https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv

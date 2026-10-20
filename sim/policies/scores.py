@@ -1,4 +1,4 @@
-"""Score functions for the rider tier of pi_theta (spec §6, decisions T-07, T-21).
+"""Score functions for the rider tier of pi_theta.
 
 A score function is ``f(batch: SessionBatch, s_hat: np.ndarray) -> np.ndarray``:
 ``s_hat`` is the forecast supply indicator of each session's pickup cell (float
@@ -6,7 +6,7 @@ A score function is ``f(batch: SessionBatch, s_hat: np.ndarray) -> np.ndarray``:
 session, higher = offer first. Built-ins: ``random`` returns the pre-drawn
 ``u_score`` (a policy never draws numbers itself), ``heuristic_low_freq`` returns
 ``-x_freq``. Any ``"module:function"`` string is imported at load time, so the
-same string works inside a spawned worker process (spec §7).
+same string works inside a spawned worker process.
 """
 
 from __future__ import annotations
@@ -39,10 +39,10 @@ def is_oracle(spec: str) -> bool:
 
 
 def make_oracle_score(cfg: Config, hidden: OracleHiddenView) -> ScoreFn:
-    """Oracle score (decisions T-40, H-42, KN 3.1): extra bookings per 1.000đ of expected voucher,
-    ``1000 * (p1 - p0) / (v * p1)``, with ``p1``/``p0`` the booking probabilities of the choice model (spec §4.4) at
+    """Oracle score: extra bookings per 1.000đ of expected voucher,
+    ``1000 * (p1 - p0) / (v * p1)``, with ``p1``/``p0`` the booking probabilities of the choice model at
     the quoted fare and ETA with and without the voucher ``v = pricing.voucher_dong(cfg, fare) / DONG_PER_VND`` (the
-    voucher the session would really get, H-06). ``v = 0`` gives NaN, so the session is not offered.
+    voucher the session would really get). ``v = 0`` gives NaN, so the session is not offered.
 
     Fixed-market oracle: it knows every rider's coefficients but not the externality on other riders, and it
     uses the booking probability in place of the completion probability. Upper bound of policies that rank
@@ -60,7 +60,7 @@ def make_oracle_score(cfg: Config, hidden: OracleHiddenView) -> ScoreFn:
         p1 = request_probability(alpha, beta_price, beta_eta, delta, fare, v, eta)
         p0 = request_probability(alpha, beta_price, beta_eta, delta, fare, 0.0, eta)
         with np.errstate(divide="ignore", invalid="ignore"):
-            score = np.where(v > 0, 1000.0 * (p1 - p0) / (v * p1), np.nan)   # per 1.000đ (H-42)
+            score = np.where(v > 0, 1000.0 * (p1 - p0) / (v * p1), np.nan)   # per 1.000đ
         return score.astype(np.float32)
 
     oracle.__name__ = ORACLE
@@ -92,7 +92,7 @@ def load_score_fn(spec: str) -> ScoreFn:
         return BUILTIN_SCORES[name]
     if is_oracle(name):
         raise ValueError("score_fn 'oracle' reads hidden coefficients: it is built only by sim.policies.make_policy "
-                         "for policy.name = threshold (decisions T-40)")
+                         "for policy.name = threshold")
     if ":" in name:
         return import_callable(name)
     raise ValueError(f"unknown score_fn {spec!r}: use {sorted(BUILTIN_SCORES)} or 'module:function'")

@@ -2,5 +2,5 @@
 *.pdf binary
 *.parquet binary
 *.png binary
-# LightGBM model text files: LightGBM cannot parse CRLF, so never convert them on checkout (decisions T-35).
+# LightGBM model text files: LightGBM cannot parse CRLF, so never convert them on checkout.
 analysis/models/*.txt text eol=lf

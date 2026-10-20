@@ -1,11 +1,11 @@
-"""Validation numbers of the simulator for notebook 01 (task T6.1): A1, A2 (b), A3, A5, CAL, data sets.
+"""Validation numbers of the simulator for notebook 01: A1, A2 (b), A3, A5, CAL, data sets.
 
-Every function reads run directories written by the commands of ``docs/datasets.md``; nothing
-here simulates. The definitions are those of ``docs/tests.md`` §3–4 and of the slow tests
-(``tests/test_acceptance_core.py``, ``tests/test_acceptance.py``), so the notebook shows the
-numbers the gates were judged on. ``tests/test_validation.py`` checks that, on the same seed,
-the CAL numbers computed here from the saved tables equal the ones the slow test computes in
-memory.
+Every function reads run directories written by the commands of README.md, section "Tái lập kết quả";
+nothing here simulates. The definitions are those of the acceptance checks (README.md, section
+"Kiểm thử") and of the slow tests (``tests/test_acceptance_core.py``, ``tests/test_acceptance.py``),
+so the notebook shows the numbers the slow tests judge. ``tests/test_validation.py`` checks that,
+on the same seed, the CAL numbers computed here from the saved tables equal the ones the slow test
+computes in memory.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from analysis.io import load_hidden, load_run
 from analysis.plots import vn
 
 # ---------------------------------------------------------------------------
-# A1: throughput curve (docs/tests.md §3)
+# A1: throughput curve
 # ---------------------------------------------------------------------------
 
 A1_COLUMNS = ("completed_per_h", "mean_slack", "mean_pickup_eta_min")
@@ -36,7 +36,7 @@ def a1_checks(summary: pd.DataFrame, *, wgc_slack: float = 0.45, fall_ratio: flo
               max_eta_step_min: float = 3.0) -> pd.DataFrame:
     """The four pass conditions of A1, each with the number it was judged on.
 
-    Thresholds are the ones written in docs/tests.md A1 (0.95 x peak, slack 0.45 from Castillo,
+    Thresholds are those of acceptance check A1 (0.95 x peak, slack 0.45 from Castillo,
     3-minute ETA step) and default to them.
     """
     done = summary["completed_per_h"].to_numpy(dtype=float)
@@ -61,7 +61,7 @@ def a1_checks(summary: pd.DataFrame, *, wgc_slack: float = 0.45, fall_ratio: flo
 
 
 # ---------------------------------------------------------------------------
-# CAL: calibration targets (docs/tests.md §4)
+# CAL: calibration targets
 # ---------------------------------------------------------------------------
 
 
@@ -95,7 +95,7 @@ def _calibration_counts(run_dir: Path) -> dict[str, float]:
     snaps = run["slot_snapshots"]
     lag = snaps[["slot", "cell", "slack_lag_slot"]].rename(columns={"cell": "pu_cell"})
     s = s.merge(lag, on=["slot", "pu_cell"], how="left")
-    surplus = (s["slack_lag_slot"] > 1.0).to_numpy()            # NaN (no previous slot) is not surplus (H-15)
+    surplus = (s["slack_lag_slot"] > 1.0).to_numpy()            # NaN (no previous slot) is not surplus
     window = snaps[snaps["slot"].isin(np.unique(s["slot"]))]["slack"].to_numpy(dtype=float)
     o = run["orders"]
     done = o[o["in_window"] & (o["status"] == "Completed")]
@@ -118,12 +118,12 @@ def _calibration_counts(run_dir: Path) -> dict[str, float]:
 def calibration_metrics(run_dirs) -> dict[str, float]:
     """The CAL quantities, pooled over full-log all_off runs (as ``calibration_metrics`` of the slow test).
 
-    - surplus session: the slack its cell had in the previous slot (``slack_lag_slot``) is above 1
-      (decisions H-15); P(request) without voucher and the request uplift
-      ``sum p_request_treat / sum p_request_control - 1`` are taken over those sessions (H-16);
-    - shares of (cell, slot) of the window with slack < 0.35 and > 1 (their own slot, H-14);
+    - surplus session: the slack its cell had in the previous slot (``slack_lag_slot``) is above 1;
+      P(request) without voucher and the request uplift
+      ``sum p_request_treat / sum p_request_control - 1`` are taken over those sessions;
+    - shares of (cell, slot) of the window with slack < 0.35 and > 1 (their own slot);
     - ``busy_rel_h6/h7/h8``: trip hours of completed in-window orders by hour of the request over the
-      busiest hour (decisions H-31, definition of ``analysis/tlc_hourly.py``);
+      busiest hour (definition of ``analysis/tlc_hourly.py``);
     - ``mean_trip_km`` of completed in-window orders; ``trips_per_driver_day`` = completed in-window
       orders / (``fleet_size`` x days of the window), as the slow test.
     """
@@ -159,7 +159,7 @@ def crn_variance_ratio(n_a: pd.Series, n_b: pd.Series) -> dict[str, float]:
 
     ``n_a``, ``n_b``: N per seed (index = seed). With CRN the difference is paired by seed; with
     independent seeds Var(N(a) - N(b')) = Var(N(a)) + Var(N(b)), estimated from the same runs (the
-    slow test draws extra seeds for b instead; same expectation, decisions T-37).
+    slow test draws extra seeds for b instead; same expectation).
     """
     both = pd.concat([n_a.rename("a"), n_b.rename("b")], axis=1).dropna().astype(float)
     var_crn = float((both["a"] - both["b"]).var(ddof=1))

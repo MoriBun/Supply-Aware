@@ -50,7 +50,7 @@ export function gridIndex(grid, theta) {
 
 export const parseNumbers = (text) => String(text || "").trim().split(/[\s,;]+/).filter(Boolean).map(Number).filter((v) => Number.isFinite(v) && v >= 0);
 
-// Config layers of the worlds offered in the forms (S8: W0 = config/default.yaml, W1 = + config/world_w1.yaml).
+// Config layers of the worlds offered in the forms (W0 = config/default.yaml, W1 = + config/world_w1.yaml).
 export const WORLDS = [["w0", "W0 Hà Nội (mặc định)", []], ["w1", "W1 Hà Nội + biến động (mưa, sự kiện, tài xế nghỉ)", ["config/world_w1.yaml"]],
   ["tiny", "Tiny (test, 7 ô)", ["tests/fixtures/tiny.yaml"]]];
 export const worldLayers = (key) => (WORLDS.find(([k]) => k === key) || WORLDS[0])[2];

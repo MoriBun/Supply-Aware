@@ -1,4 +1,4 @@
-"""docs/tests.md, M10 ExperimentDesigner (spec §4.10; decisions T-15, T-25): clusters, blocks, switchback, rider A/B."""
+"""Experiment design (sim/experiment.py): clusters, blocks, switchback, rider A/B."""
 
 import dataclasses
 
@@ -30,7 +30,7 @@ def test_cluster_levels_cover_every_cell_without_overlap(space):
     ids = ex.cluster_ids(space, 7)
     assert ids.dtype == np.int16 and len(ids) == space.n_cells and ex.n_clusters(ids) == 7
     sizes = sorted(np.bincount(ids).tolist())
-    assert sizes == [7, 7, 7, 8, 9, 11, 12]                             # R = 4 (H7.1, decisions H-36); R = 3 gave 3–7
+    assert sizes == [7, 7, 7, 8, 9, 11, 12]                             # R = 4; R = 3 gave 3–7
     centres = np.flatnonzero((space.cell_q.astype(int) + 5 * space.cell_r.astype(int)) % 7 == 0)
     assert (space.D[np.arange(space.n_cells), centres[ids]] <= 2).all()   # every cell within 2 rings of its centre
     for z in range(space.n_cells):                                      # nearest centre, ties to the smaller id
@@ -51,7 +51,7 @@ def test_effective_level(cfg):
     assert ex.effective_level(glob) == "all"
 
 
-# --- blocks and burn-in (T-15) ---------------------------------------------------------
+# --- blocks and burn-in ----------------------------------------------------------------
 
 
 def test_block_and_burnin_flags(cfg):
@@ -61,7 +61,7 @@ def test_block_and_burnin_flags(cfg):
     assert ex.in_burnin(cfg, 0.0) and ex.in_burnin(cfg, 899.0) and not ex.in_burnin(cfg, 900.0)
     assert ex.in_burnin(cfg, 3600.0) and not ex.in_burnin(cfg, 3599.0)
     np.testing.assert_array_equal(ex.in_burnin(cfg, np.array([0.0, 900.0, 4000.0, 4500.0])), [True, False, True, False])
-    assert cfg.time.warmup_min % cfg.experiment.block_min == 0           # window starts on a block boundary (H-01)
+    assert cfg.time.warmup_min % cfg.experiment.block_min == 0           # window starts on a block boundary
 
 
 # --- switchback assignment (CELLSLOT stream) ------------------------------------------
@@ -73,7 +73,7 @@ def test_cluster_on_share_matches_p_on_and_is_deterministic(cfg, space):
     n_blocks = 2000
     states = np.array([ex.cluster_on(rng, cfg, ids, 7, b) for b in range(n_blocks)])     # [blocks, N]
     per_cluster = np.array([[states[b, ids == c][0] for c in range(7)] for b in range(n_blocks)])
-    assert abs(per_cluster.mean() - cfg.experiment.p_on) < 0.03                          # docs/tests.md: ±3%
+    assert abs(per_cluster.mean() - cfg.experiment.p_on) < 0.03                          # ±3%
     for b in (0, 1, 777):                                                               # cells share their cluster's state
         for c in range(7):
             assert len(set(states[b, ids == c].tolist())) == 1

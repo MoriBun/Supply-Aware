@@ -1,13 +1,11 @@
 """M9 Repositioning: static-weight moves of long-idle drivers; never reads demand or snapshots.
 
-Spec: docs/spec.md §4.9; hard rule 5. Milestone: P2 (task H2.3).
-
 Contract: ``step`` uses only ``ctx.world.cell_weight``, ``ctx.world.space`` and
 the DRIVER stream keyed by ``(driver_id, reposition_count)``. It must not touch
-``ctx.monitor``, ``ctx.sessions`` or ``ctx.orders`` (docs/tests.md, M9).
+``ctx.monitor``, ``ctx.sessions`` or ``ctx.orders``.
 
 The destination depends only on the driver, on how many times they have moved
-and on the static cell weights, so supply stays independent of the policy.
+and on the static cell weights, so supply stays independent of the policy (hard rule 5).
 """
 
 from __future__ import annotations
@@ -31,7 +29,7 @@ def step(ctx: SimContext, t: float) -> None:
     if len(moving) == 0:
         return
 
-    hour = travel_hour(ctx, t, ctx.clock.hour_of(t))   # + 24 while it rains (H7.4)
+    hour = travel_hour(ctx, t, ctx.clock.hour_of(t))   # + 24 while it rains
     origin = drivers.cell[moving]
     target = np.empty(len(moving), dtype=drivers.cell.dtype)
     for j, d in enumerate(moving.tolist()):

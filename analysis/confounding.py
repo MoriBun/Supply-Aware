@@ -1,4 +1,4 @@
-"""How the legacy targeting confounds the voucher effect (task H6.3, notebook 05).
+"""How the legacy targeting confounds the voucher effect (notebook 05).
 
 The legacy rule offers a voucher with ``P = sigma(g0 + g_freq * z_freq + g_u * u_latent)``
 (``policy.legacy``), and ``u_latent`` also raises the chance that a rider completes a trip
@@ -7,7 +7,7 @@ can adjust for it. :func:`latent_profile` shows the mechanism directly: it reads
 from ``hidden/`` **for diagnosis only**; nothing here feeds a model or a policy.
 
 The estimates themselves (naive, adjusted on X, explore slice) are
-:func:`analysis.interference.confounding_estimates` (T5.3, decisions T-34).
+:func:`analysis.interference.confounding_estimates`.
 """
 
 from __future__ import annotations

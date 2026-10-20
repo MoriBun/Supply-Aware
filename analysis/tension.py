@@ -1,6 +1,6 @@
-"""Which supply-tension indicator should s_hat be? (task H5.3, decisions H-22).
+"""Which supply-tension indicator should s_hat be?
 
-Rule (H-22 (iii)): pick the indicator that best forecasts the **service level** a session gets,
+Rule: pick the indicator that best forecasts the **service level** a session gets,
 on ``all_off`` data, without looking at N. Every candidate only uses snapshots published before
 the session's slot (slot k-1, or the same slot one day earlier), as a policy would:
 
@@ -136,7 +136,7 @@ def main(argv: list[str]) -> int:
     if len(argv) < 2:
         print("usage: python -m analysis.tension <all_off evaluate dir, --log-level full> [config.yaml ...]")
         return 2
-    # Several config layers merge in order (e.g. default.yaml + world_w1.yaml, task H9.2).
+    # Several config layers merge in order (e.g. default.yaml + world_w1.yaml).
     cfg = load_config(argv[2:] or [Path(__file__).resolve().parents[1] / "config" / "default.yaml"])
     frame = run_frames(Path(argv[1]), cfg)
     share = float(np.mean(frame["cell_persistence"] < cfg.policy.threshold.theta))

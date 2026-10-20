@@ -1,11 +1,11 @@
-"""Hour-off rule as a score function (task H9.4; plan v3 §4.1, Q6).
+"""Hour-off rule as a score function.
 
 A ``threshold`` policy with ``theta = 0`` (no cell is cut by tension) whose score is **NaN in the harmful
-hours**, so those sessions are never offered (NaN = not offered, as for the oracle, decisions T-40), and
+hours**, so those sessions are never offered (NaN = not offered, as for the oracle), and
 elsewhere ranks riders either like ``random`` (the pre-drawn ``u_score``, so the budget binds the same way
 as the ``random`` row of the policy table) or like the DR score per 1.000đ of world W0/W1
 (``analysis.uplift``). This is the "fixed off at the hours where the voucher hurts" policy and, at the same
-time, the ``hour`` tier of Q6, so it runs once (S10 T10.1).
+time, the ``hour`` tier (is the cell tier an hour-off rule in disguise?), so it runs once.
 
 The harmful hours of a world come from :mod:`analysis.tension_curve` on the city-wide switchback run
 (``tau(h)`` upper interval < 0) and are stored in ``analysis/models/hour_rule_<world>.json`` (committed,
@@ -59,7 +59,7 @@ def save_hours(world: str, hours, *, source: str, model_dir: Path | None = None)
     path = rule_path(world, model_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"world": world, "harmful_hours": hours, "source": source,
-                                "rule": "score NaN (never offered) in harmful_hours; theta = 0 (task H9.4)"},
+                                "rule": "score NaN (never offered) in harmful_hours; theta = 0"},
                                indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     _load.cache_clear()
     return path
@@ -103,7 +103,7 @@ del _world, _base, _fn
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="hour-off rule: store the harmful hours of a world (task H9.4)")
+    ap = argparse.ArgumentParser(description="hour-off rule: store the harmful hours of a world")
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("set")
     s.add_argument("world", choices=WORLDS)

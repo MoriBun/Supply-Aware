@@ -1,4 +1,4 @@
-"""Figures of the result notebooks 01–03 (Sprint 6, tasks T6.1–T6.3; decisions H-27).
+"""Figures of the result notebooks 01–03.
 
 Each function takes tables already computed by ``analysis/`` and returns one figure; the
 notebook shows it under the cell and writes it to ``docs/figures/`` with
@@ -19,7 +19,7 @@ from analysis.plots import INK, INK_2, MUTED, SERIES, SURFACE, Z95, _line, _pypl
 
 SLOT = (SERIES, "#eb6834", "#1baf7a")          # categorical slots 1-3
 
-# Display names of the T5.1 labels (analysis.policy_table.DEFAULT_SPECS).
+# Display names of the policy-table labels (analysis.policy_table.DEFAULT_SPECS).
 NAMES = {
     "all_off": "all_off (không voucher)",
     "all_on_B": "all_on có B (mốc)",
@@ -36,7 +36,7 @@ NAMES = {
     "pi_theta_0.5_heuristic": r"$\pi_\theta$, θ = 0,5, heuristic",
     "pi_thetahatA_ring1_dr_vnd": r"$\pi_{\hat\theta}$ (A) ring1 + $\hat\tau(x)$/đ DR",
     "pi_thetahatB_ring1_dr_vnd": r"$\pi_{\hat\theta}$ (B) ring1 + $\hat\tau(x)$/đ DR",
-    # S10 (analysis.policy_table.specs_for_world, T10.1): scores per 1.000đ, S9 thresholds, hour rule, oracle.
+    # analysis.policy_table.specs_for_world: scores per 1.000đ, tension / hour thresholds, hour rule, oracle.
     "tau_x_dr_all_kvnd": r"$\hat\tau(x)$/1.000đ DR",
     "tau_xs_dr_all_kvnd": r"$\hat\tau(x,s)$/1.000đ DR",
     "tau_x_dr_kvnd": r"$\hat\tau(x)$/1.000đ DR (lát explore)",
@@ -48,7 +48,7 @@ NAMES = {
     "hour_off_dr_kvnd": r"luật tắt theo giờ + $\hat\tau(x)$/1.000đ",
     "oracle": "oracle (τ thật mỗi khách)",
 }
-DR_TITLE = r"$\hat\tau(x)$/đ học bằng DR"     # panel title of the sweeps with the learned score (H-22 ii)
+DR_TITLE = r"$\hat\tau(x)$/đ học bằng DR"     # panel title of the sweeps with the learned score
 # Rider layer ranked by effect per đồng (a score of this set, or a pi_theta_hat / hour rule built on one).
 PER_VND = {"tau_per_vnd", "tau_x_dr_all_vnd", "tau_xs_dr_all_vnd", "tau_x_dr_vnd", "tau_xs_dr_vnd",
            "pi_thetahatA_ring1_dr_vnd", "pi_thetahatB_ring1_dr_vnd",
@@ -147,7 +147,7 @@ def sweeps_figure(sweeps: dict[tuple[str, str], pd.DataFrame], *, theta_max: flo
 
 
 def ladder_figure(summary: pd.DataFrame, *, reference: str = "all_on_B"):
-    """T5.1: N(pi) - N(reference) with a 95% interval, paired by seed (``analysis.policy_table.summarize``)."""
+    """N(pi) - N(reference) with a 95% interval, paired by seed (``analysis.policy_table.summarize``)."""
     plt = _pyplot()
     t = summary[summary["label"] != reference].sort_values("dN_vs_ref").reset_index(drop=True)
     fig, ax = plt.subplots(figsize=(10, 0.42 * len(t) + 1.8))
@@ -178,7 +178,7 @@ def ladder_figure(summary: pd.DataFrame, *, reference: str = "all_on_B"):
 
 
 def qini_vs_n_figure(qini: pd.DataFrame, efficiency: pd.DataFrame):
-    """T5.2. Left: Qini (95% CI) against N under B. Right: extra trips per 100.000đ against N.
+    """Left: Qini (95% CI) against N under B. Right: extra trips per 100.000đ against N.
 
     ``qini``: ``results/qini_completed`` of ``analysis.qini_vs_value``; ``efficiency``: its
     ``offer_efficiency`` (with ``N_mean``). Shared y-axis = the same N.
@@ -235,7 +235,7 @@ def qini_vs_n_figure(qini: pd.DataFrame, efficiency: pd.DataFrame):
 
 
 def design_bias_figure(designs: pd.DataFrame):
-    """T5.3: total effect per day estimated by each design (95% CI) against the GTE (``design_table``)."""
+    """Total effect per day estimated by each design (95% CI) against the GTE (``design_table``)."""
     plt = _pyplot()
     d = designs.iloc[::-1].reset_index(drop=True)
     gte, gte_se = float(d["GTE"].iloc[0]), float(d["GTE_se"].iloc[0])
@@ -265,7 +265,7 @@ def design_bias_figure(designs: pd.DataFrame):
 
 
 def u_latent_figure(confounding: pd.DataFrame):
-    """T5.3: bias against the explore slice as the legacy targeting leans on u_latent (``confounding_table``)."""
+    """Bias against the explore slice as the legacy targeting leans on u_latent (``confounding_table``)."""
     plt = _pyplot()
     c = confounding.sort_values("target_g_u").reset_index(drop=True)
     x = c["target_g_u"].to_numpy(dtype=float)

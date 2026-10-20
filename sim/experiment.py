@@ -1,11 +1,9 @@
 """M10 ExperimentDesigner: clusters (1 / 7 / all), switchback blocks, rider A/B, burn-in flags.
 
-Spec: docs/spec.md §4.10; decisions T-15, T-25. Milestone: P5 (task T2.2).
-
 Everything here is a pure function of the config, the grid and the keyed streams:
 the state of a (cluster, block) comes from CELLSLOT keyed by
 ``(SWITCHBACK, level_code, cluster_id, block)`` and a rider's arm from RIDER keyed
-by ``rider_id`` (spec §5), so an assignment never depends on the policy or on
+by ``rider_id``, so an assignment never depends on the policy or on
 what happened earlier in the run.
 """
 
@@ -54,7 +52,7 @@ def block_s(cfg: Config) -> int:
 
 
 def block_of(cfg: Config, t) -> int | np.ndarray:
-    """``floor(t / (block_min * 60))`` from the start of the run (decisions T-15)."""
+    """``floor(t / (block_min * 60))`` from the start of the run."""
     b = np.floor_divide(np.asarray(t, dtype=np.float64), block_s(cfg)).astype(np.int64)
     return int(b) if b.ndim == 0 else b
 
