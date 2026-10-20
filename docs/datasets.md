@@ -502,3 +502,70 @@ $PY -m analysis.s10_eval switch --table runs/s10/w0/policy_table; $PY -m analysi
 | G10 H2 vế hai | `w1/h2_slots_full`, `w1/eval_h2` | lợi ở slot mưa / sự kiện −24 ± 17, slot yên +165 ± 54; hiệu mỗi slot −5,9 ± 3,3 (CI [−14,9; +3,2]) → không dồn vào slot có biến động |
 | A5-HN (notebook 01) | `w0/a5_evaluate_1proc` | 18,5 / 18,0 / 16,8 s mỗi ngày mô phỏng, 1 tiến trình (ngưỡng 60) |
 | T11.1 animation (notebook 06) | `w0/anim_pair_full`, `w1/h2_slots_full`; `docs/figures/06_anim_*.gif` | ΔN cả cửa sổ W0 +1.478,5 ± 49,2, W1 +1.208,0 ± 59,1 (10 seed); trong khung 5h–9h −33,7 / −62,1; khung sự kiện W1 (3 seed) +179,7; tổng Δ theo slot = N(mới) − N(cũ) ở mọi seed |
+
+---
+
+## Thống kê mô tả dữ liệu lịch sử 28 ngày (W0, W1) (20/10/2026, `docs/figures/07_*`)
+
+Theo hướng dẫn `huong_dan_thong_ke_du_lieu.md` của Hoàng (cho 3 slide "Dữ liệu sinh ra" và mục 4.1.2 của báo cáo). Không chạy lại simulator: chỉ đọc `observed/`, `market/`, `meta/` của `runs/s8/w0/legacy_28d` và `runs/s8/w1/legacy_28d` (không đọc `hidden/`). `check_dataset` OK cả hai thư mục, số khớp mục Sprint 8 (4.195.499 / 4.237.888 session; 637.948 / 638.473 order; N 588.644 / 585.126; phát 22,3%).
+
+### Lệnh
+
+```bash
+PY=.venv/Scripts/python.exe
+$PY -m analysis.check_dataset runs/s8/w0/legacy_28d runs/s8/w1/legacy_28d --markdown
+$PY -m analysis.data_stats --w0 runs/s8/w0/legacy_28d --w1 runs/s8/w1/legacy_28d --out docs/figures   # 8,4 s
+```
+
+Quy ước: mọi chỉ tiêu trong cửa sổ đánh giá (bỏ 60 phút khởi động); "mỗi ngày" = tổng / 28. Ngày của một order là **ngày cửa sổ**: từ 1h (đầu cửa sổ) đến 1h hôm sau, nên cả 28 ngày đủ 24 giờ (order không có cột `day`; theo ngày lịch thì ngày đầu thiếu 1 giờ và có thêm "ngày 29" dài 1 giờ). (ô, slot) của cửa sổ: slot bắt đầu trong cửa sổ, cùng bộ lọc với kiểm G8. Số thô chưa làm tròn: `docs/figures/07_du_lieu_thong_ke.csv` (cột `chi_tieu, w0, w1`; hai chữ số đầu của `chi_tieu` là số thứ tự chỉ tiêu).
+
+### Bảng (W0 | W1)
+
+| # | Chỉ tiêu | W0 | W1 |
+|---|---|---|---|
+| 1 | Số ô · số khách · số xe | 61 · 120.000 · 1.150 | 61 · 120.000 · 1.278 |
+| 2 | Khách có ít nhất 1 phiên trong cửa sổ | 119.648 (99,7%) | 119.662 (99,7%) |
+| 3 | Phiên: mỗi ngày (tổng) | 149.758 (4.193.232) | 151.275 (4.235.713) |
+| 4 | Lượt đặt: mỗi ngày (tổng); tỷ lệ đặt | 22.769 (637.537); 15,2% | 22.788 (638.076); 15,1% |
+| 5 | Chuyến hoàn thành: mỗi ngày (tổng = N); thấp nhất–cao nhất theo ngày | 21.023 (588.644); 20.818–21.198 | 20.897 (585.126); 16.907–23.106 |
+| 6 | Lượt đặt: hoàn thành / hủy khi xe đang tới / bỏ chờ | 92,3% / 7,7% / 0,00% | 91,7% / 8,3% / 0,00% |
+| 7 | Phiên được phát voucher; bị chặn vì hết ngân sách | 22,3%; 1,1% | 22,3%; 0,4% |
+| 8 | Phiên thuộc lát phát ngẫu nhiên | 5,0% | 5,0% |
+| 9 | Voucher đã chi mỗi ngày (triệu đ); so với B | 113,8 = 100,00% B (B = 113,8) | 115,1 = 99,14% B (B = 116,1) |
+| 10 | Giá cước chuyến hoàn thành (đ) | TB 80.618 · trung vị 85.925 · p90 126.936 | TB 80.658 · trung vị 85.925 · p90 126.936 |
+| 10 | Quãng đường (km) | TB 5,64 · trung vị 6,35 · p90 9,52 | TB 5,65 · trung vị 6,35 · p90 9,52 |
+| 10 | Thời gian chuyến (phút) | TB 19,6 · trung vị 16,1 · p90 38,1 | TB 19,7 · trung vị 16,1 · p90 38,2 |
+| 11 | ETA đón, order đã ghép (phút) | TB 4,4 · trung vị 3,3 · p90 10,6 | TB 4,6 · trung vị 3,3 · p90 10,6 |
+| 12 | Chuyến có voucher chạm trần 20.000đ (trong chuyến có voucher); chuyến có voucher | 54,8%; 33,0% chuyến hoàn thành | 54,8%; 33,6% chuyến hoàn thành |
+| 13 | Chuyến hoàn thành / xe / ngày | 18,3 | 16,4 |
+| 14 | (ô, slot) trong cửa sổ; căng (slack < 0,35) · dư (slack > 1) | 163.968; 16,6% · 65,8% | 163.968; 17,7% · 65,3% |
+| 15 | Chuyến hoàn thành / khách trong cửa sổ (gồm khách 0 chuyến) | TB 4,9 · trung vị 2,0 · p90 12,0 | TB 4,9 · trung vị 2,0 · p90 12,0 |
+| 16 | Biến động: ngày mưa · sự kiện (sân vận động) · xe nghỉ/ngày · hệ số cầu ngày | không bật | 8 · 22 (4) · 111–141 · ×0,71–1,18 |
+| 17 | observed/riders (dòng × cột) | 120.000 × 7 | 120.000 × 7 |
+| 17 | observed/sessions | 4.195.499 × 30 | 4.237.888 × 30 |
+| 17 | observed/orders | 637.948 × 24 | 638.473 × 24 |
+| 17 | market/slot_snapshots | 164.334 × 31 | 164.334 × 31 |
+
+Bỏ chờ: W0 0 lượt, W1 9 lượt / 638.076. Chỉ tiêu 17 là kích thước trên đĩa, gồm cả 60 phút khởi động và phần cool-down (164.334 = 61 ô × 2.694 slot).
+
+### Hình (`docs/figures/`, 220 dpi; hình chính dùng W0, panel (d) có cả W1)
+
+| File | Nội dung |
+|---|---|
+| `07_du_lieu_tong_quan.png` | hình 2 × 2 (12 × 8,6 inch): (a) theo giờ, (b) bản đồ, (c) giá cước, (d) theo ngày |
+| `07_du_lieu_theo_gio.png` | (a) ngày trung bình: phiên/giờ; lượt đặt và chuyến hoàn thành/giờ (theo giờ đặt); tỷ lệ (ô, slot) căng theo giờ. Ba hàng chung trục giờ |
+| `07_du_lieu_ban_do.png` | (b) phiên/ô/ngày theo ô đón trên 61 ô; ▲ 2 sân vận động, ■ 1 phố đi bộ (ô có sự kiện ở W1, lấy từ `meta/shocks`) |
+| `07_du_lieu_gia_cuoc.png` | (c) phân bố giá cước chuyến hoàn thành (cắt ở p99 = 162 nghìn đ), vạch TB và mốc 80.000đ |
+| `07_du_lieu_theo_ngay.png` | (d) chuyến hoàn thành/ngày: W0 đường xám, W1 điểm theo loại ngày (không biến động / chỉ sự kiện / chỉ mưa / mưa + sự kiện) |
+| `07_du_lieu_quang_duong_eta.png` | phụ: quãng đường chuyến hoàn thành và ETA đón lúc ghép, có vạch TB |
+| `07_du_lieu_gay_nhieu.png` | phụ: tỷ lệ đặt có / không voucher, phiên do luật cũ quyết định so với lát phát ngẫu nhiên (chỉ cột quan sát) |
+
+### Nhận xét
+
+- Kiểm: chỉ tiêu 5 bằng N của `results/policy_results` (tổng theo giờ = tổng theo ngày = N); chỉ tiêu 14 trùng kiểm G8 (163.968 (ô, slot); căng 16,6% / 17,7%); chỉ tiêu 16 trùng mục Sprint 8 (8 ngày mưa, 22 sự kiện, 111–141 xe nghỉ, ×0,71–1,18).
+- Theo giờ (W0): phiên đỉnh sáng 8h (10.930/giờ), đỉnh chiều 18h (11.894/giờ); (ô, slot) căng đỉnh 8h 53,7%, 18h 52,1%, 19h 43,1%. Ở 8h có 1.327 lượt đặt/giờ nhưng chỉ 1.099 chuyến hoàn thành, ở 18h 1.359 và 1.096: hủy dồn vào giờ căng.
+- Quãng đường và giá cước **rời rạc**: chuyến đi từ tâm ô đón tới tâm ô đích (lưới nối vòng), nên `trip_km` chỉ có 5 giá trị 1,48 / 3,17 / 6,35 / 9,52 / 12,70 km (cùng ô, cách 1–4 vành); chuyến trong ô (13,8%) trả giá tối thiểu 38.473đ. Vì vậy TB (80.618đ, 5,64 km) thấp hơn trung vị (85.925đ, 6,35 km). 51,9% chuyến hoàn thành có giá ≥ 80.000đ; trong chuyến có voucher, **54,8% chạm trần 20.000đ**: khoảng một nửa, không phải "phần lớn nhận đủ 25%" như hướng dẫn dự kiến. Quãng đường TB 5,64 km cao hơn mốc 5,56 km của CAL vì CAL tính trên lượt không voucher.
+- Theo ngày: W0 20.818–21.198 chuyến/ngày, ngày 1 không khác thường (21.198, cao nhất, +0,8% so với TB). W1 16.907–23.106; tương quan với hệ số cầu ngày r = 0,98, với số xe nghỉ r = −0,37. TB theo loại ngày: không biến động 19.742 (6 ngày), chỉ sự kiện 21.261 (14), chỉ mưa 21.718 (1), mưa + sự kiện 21.043 (7). Ngày thấp nhất (ngày 15, 16.907 chuyến) không có mưa hay sự kiện mà có hệ số cầu 0,71. Kiểm G8 đếm theo ngày lịch nên có 7 ngày không biến động (gồm "ngày 29" dài 1 giờ); ở đây là 6.
+- Gây nhiễu (W0, chỉ cột quan sát): phiên do luật cũ quyết định đặt 22,5% khi có voucher, 13,2% khi không (chênh 9,4 điểm); ở lát ngẫu nhiên là 20,1% và 13,9% (chênh 6,2 điểm). So thô trên phiên của luật cũ lớn gấp 1,5 lần chênh lệch không gây nhiễu, vì luật cũ chọn khách vốn hay đặt xe (W1: 9,6 so với 6,4 điểm).
+- Chuyến/xe/ngày: W0 18,3; W1 16,4 vì chia cho cả đội 1.278 xe, gồm trung bình 126,7 xe nghỉ mỗi ngày. Mốc CAL 16,8 tính trên lượt không voucher.
+- Lệch hướng dẫn: (1) panel (a) dùng ba hàng chung trục giờ thay cho trục phụ bên phải (quy ước `analysis/plots.py`: không hai thang y trên một trục); (2) panel (a) tô màu cam cho tỷ lệ căng, chuyến hoàn thành màu xanh, phiên và lượt đặt màu xám; (3) ngày tính theo cửa sổ như trên; (4) `analysis.plots.save_figure` thêm tham số `dpi` (mặc định giữ 150) để lưu 220 dpi.
