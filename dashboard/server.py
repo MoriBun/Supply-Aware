@@ -210,6 +210,17 @@ def create_app(root: Path = ROOT, runs_dir: Path | None = None) -> FastAPI:
         out["budget_vnd"] = run.budget_vnd
         return out
 
+    @app.get("/api/runs/{run_key}/compare")
+    def compare_runs(run_key: str, ref: str = Query(..., description="id of the reference run (same seed)")) -> dict:
+        a, b = _run(run_key), _run(ref)
+        if a.kind == "sweep" or b.kind == "sweep" or a.status != "done" or b.status != "done":
+            raise HTTPException(400, "cần hai lượt một θ đã xong")
+        try:
+            return summ.compare({"id": a.id, "name": a.name, "summary": a.summary, "config": a.config},
+                                {"id": b.id, "name": b.name, "summary": b.summary, "config": b.config})
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+
     @app.get("/api/runs/{run_key}/summary")
     def get_summary(run_key: str) -> dict:
         run = _run(run_key)

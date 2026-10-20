@@ -50,18 +50,19 @@ def pyplot():
     return _pyplot()
 
 
-def save_figure(fig, name: str, *, figures_dir: Path | None = None) -> Path:
+def save_figure(fig, name: str, *, figures_dir: Path | None = None, dpi: int = 150) -> Path:
     """Write ``fig`` to ``docs/figures/<name>.png`` for the report and slides (decisions H-27).
 
     ``name`` starts with the number of the notebook that owns the figure (``04_regret``),
     so the two authors never write the same file. The figure stays open, so a
-    notebook still shows it under the cell.
+    notebook still shows it under the cell. ``dpi`` 150 by default; the slide figures
+    of ``analysis.data_stats`` use 220.
     """
     if not FIGURE_NAME.fullmatch(name):
         raise ValueError(f"figure name {name!r}: use '<notebook number>_<lowercase words>', e.g. '04_regret'")
     path = Path(figures_dir or FIGURES_DIR) / f"{name}.png"
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=150, bbox_inches="tight")
+    fig.savefig(path, dpi=dpi, bbox_inches="tight")
     return path
 
 

@@ -146,6 +146,8 @@ class DashRun:
             "n_frames": self.trace.n_frames if self.trace else self.n_frames_saved,
             "n_slots": len(self.trace.slots) if self.trace else self.n_slots_saved, "runtime": self.runtime,
             "kpis": (self.summary or {}).get("kpis"), "out_dir": self.out_dir.as_posix(),
+            "seed": ((self.config or {}).get("meta") or {}).get("run_seed"),
+            "has_revenue": bool((self.summary or {}).get("revenue")),
         }
 
 
@@ -333,6 +335,7 @@ class RunManager:
             "slot_series": summ.slot_series(trace, clock),
             "switch_events": summ.switch_events(trace, clock, run.theta),
             "distribution": summ.distribution(result, trace, clock, kappa=kappa, x_segment=world.riders.x_segment),
+            "revenue": summ.revenue(result),
         }
         self._write(run, cfg, world, result, trace, budget, kappa, enforce, ka)
         run.runtime["total_s"] = time.perf_counter() - wall

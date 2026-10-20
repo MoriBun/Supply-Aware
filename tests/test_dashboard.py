@@ -165,13 +165,37 @@ def test_api_runs_a_tiny_run(tmp_path: Path) -> None:
     assert slots["n_slots"] == info["n_slots"] and len(slots["promo_on"][0]) == 7
     summary = client.get(f"/api/runs/{rid}/summary").json()
     assert summary["kpis"]["N_completed"] >= 0 and summary["distribution"]["budget_periods"]
+    rev = summary["revenue"]["total"]                                       # money of the window's completed trips
+    assert rev["trips"] == summary["kpis"]["N_completed"]
+    assert rev["platform_profit_vnd"] == pytest.approx(summary["kpis"]["V_profit_vnd"], rel=1e-6)
+    assert rev["voucher_value_vnd"] == pytest.approx(summary["kpis"]["voucher_spent_vnd"], rel=1e-6)
+    assert rev["net_fare_vnd"] == pytest.approx(rev["gross_fare_vnd"] - rev["voucher_value_vnd"], rel=1e-5)
+    assert rev["platform_profit_vnd"] == pytest.approx(rev["net_fare_vnd"] - rev["driver_pay_vnd"], rel=1e-5)
+    arms = {r["arm"]: r for r in summary["revenue"]["by_arm"]}
+    assert arms["voucher"]["trips"] + arms["no_voucher"]["trips"] == rev["trips"] and arms["no_voucher"]["voucher_value_vnd"] == 0
+    assert sum(r["trips"] for r in summary["revenue"]["by_hour"]) == rev["trips"]
+    # paired comparison with an all_off run of the same seed (CRN): the deltas are plain differences
+    off = client.post("/api/runs", json={"name": "tiny off", "layers": ["tests/fixtures/tiny.yaml"],
+                                         "overrides": ["policy.name=all_off", "budget.enforce=false"]}).json()
+    for _ in range(600):
+        info_off = client.get(f"/api/runs/{off['id']}").json()
+        if info_off["status"] in ("done", "error"):
+            break
+        time.sleep(0.2)
+    assert info_off["status"] == "done", info_off.get("error")
+    cmp_ = client.get(f"/api/runs/{rid}/compare", params={"ref": off["id"]}).json()
+    assert cmp_["same_seed"] and cmp_["same_world"] and not cmp_["same_budget"]
+    assert cmp_["delta"]["N_completed"] == summary["kpis"]["N_completed"] - info_off["kpis"]["N_completed"]
+    assert cmp_["delta"]["voucher_value_vnd"] == pytest.approx(rev["voucher_value_vnd"], rel=1e-6)
+    assert client.get(f"/api/runs/{rid}/compare", params={"ref": "nope"}).status_code == 404
     assert (tmp_path / rid / "results" / "policy_results.parquet").exists()
     assert (tmp_path / rid / "observed" / "sessions.parquet").exists()
     assert (tmp_path / rid / "dashboard" / "trace.npz").exists()
     # a fresh app reloads the saved run with its frames and summary
     client2 = TestClient(create_app(ROOT, runs_dir=tmp_path))
     listed = client2.get("/api/runs").json()["runs"]
-    assert [r["id"] for r in listed] == [rid] and listed[0]["n_frames"] == info["n_frames"]
+    assert {r["id"] for r in listed} == {rid, off["id"]}
+    assert next(r for r in listed if r["id"] == rid)["n_frames"] == info["n_frames"] and all(r["has_revenue"] for r in listed)
     again = client2.get(f"/api/runs/{rid}/frames", params={"start": 0, "count": 5}).json()
     assert again["t"] == frames["t"][:5] and again["events"][0] == frames["events"][0]
     assert client2.get(f"/api/runs/{rid}/summary").json()["kpis"]["N_completed"] == summary["kpis"]["N_completed"]

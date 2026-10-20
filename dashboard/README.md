@@ -24,7 +24,7 @@ Lượt chạy từ dashboard ghi vào `runs/dashboard/<id>/` (không commit, nh
 | # | Trang | Trả lời câu hỏi | Dữ liệu |
 |---|---|---|---|
 | 1 | **Tổng quan** | lượt chạy cho N(π), V(π), chi/B, % (ô, slot) bị cắt bao nhiêu; cấu hình nào; chuỗi theo slot; với lượt quét: θ\*, tập θ\*, đường N(θ) | `/api/runs/{id}`, `/summary`, `/sweep` |
-| 2 | **Tìm θ\* (quét θ)** | chọn lưới θ, số seed, số tiến trình song song, phạm vi ŝ, hàm điểm, B, thị trường; đường N(θ) ± SE **lớn dần theo từng seed xong**, vùng tập θ\*, chấm θ\*, đánh dấu θ̂ ước lượng từ dữ liệu quan sát (H-26: 0,25 với `ring1`) để so; % (ô, slot) tắt và chi theo θ; bảng theo θ kèm κ; nút chạy một lượt chi tiết tại θ\* | `POST /api/sweeps`, `/sweep` |
+| 2 | **Tìm θ\* (quét θ)** | chọn lưới θ, số seed, số tiến trình song song, phạm vi ŝ, hàm điểm, B, thị trường; đường N(θ) ± SE **lớn dần theo từng seed xong**, vùng tập θ\*, chấm θ\*, đánh dấu θ̂ ước lượng từ dữ liệu quan sát (S9, T-45: θ̂_B 2,3 với `ring1`, 1,6 với `city` trên W0) để so; % (ô, slot) tắt và chi theo θ; bảng theo θ kèm κ; nút chạy một lượt chi tiết tại θ\* | `POST /api/sweeps`, `/sweep` |
 | 3 | **Mô phỏng một θ** | đặt tham số (chính sách, θ, phạm vi ŝ, hàm điểm, κ, B, voucher, đội xe, cầu, cửa sổ, seed) rồi chạy; tiến độ theo giai đoạn: pilot B → κ auto → mô phỏng → ghi bảng | `POST /api/runs`, `/api/config/validate` |
 | 4 | **Bản đồ động** | *animation*: xe rảnh / đi đón / chở khách / dịch chuyển, khách đang chờ, ô bật/tắt voucher (gạch chéo = bị cắt), hiệu ứng phát voucher, chặn ngân sách, ghép xe, hoàn thành, hủy; đồng hồ, tốc độ ×1…×120, thanh thời gian, theo dõi trực tiếp khi đang chạy; sổ ngân sách kỳ hiện tại; bấm ô để xem ŝ so với θ | `/frames` (từng chunk), `/slots` |
 | 5 | **Vùng & ngưỡng θ** | ô nào bị cắt lúc nào: bản đồ nhiệt ô × slot (bật/tắt, ŝ dự báo, slack thực), chi tiết một ô, **cắt theo giờ trong ngày** (tỷ lệ ô tắt theo giờ), **cắt theo vùng** (bản đồ số slot tắt từng ô), nhật ký bật/tắt | `/slots`, `/summary`, hình học lưới |
@@ -70,7 +70,8 @@ Frame (mỗi tick): `status`, `cell` (ô hiện tại hoặc ô đích khi đang
 | GET | `/api/runs/{id}/sweep` | từng (θ, seed) đã xong, tổng hợp theo θ, θ\*, tập θ\*, κ từng θ (cập nhật khi đang chạy) |
 | GET | `/api/runs/{id}/frames?start=&count=` | frame theo chunk (tối đa 2000) |
 | GET | `/api/runs/{id}/slots` | ma trận ô × slot: `promo_on, s_hat, slack, idle_avg, …` |
-| GET | `/api/runs/{id}/summary` | KPI, chuỗi theo slot, sự kiện bật/tắt, phân phát |
+| GET | `/api/runs/{id}/summary` | KPI, chuỗi theo slot, sự kiện bật/tắt, phân phát, doanh thu (`revenue`: cước gốc, voucher, khách trả, trả tài xế, lợi nhuận V; theo nhánh, theo giờ) |
+| GET | `/api/runs/{id}/compare?ref=<id>` | hiệu ghép cặp với một lượt khác đã xong: ΔN, Δvoucher, ΔV, biên trước voucher, chuyến thêm / 100.000 đ, biên thêm / 1.000 đ voucher; cờ cùng seed / thế giới / B |
 | GET | `/api/results/{sweeps,policy_tables,throughput,gte,evaluations}` | kết quả đã lưu trong `runs/` |
 
 ## Test
@@ -103,3 +104,4 @@ pytest -q tests/test_dashboard.py
 - Phạm vi đo ŝ thêm `city` (T-40); hàm điểm thêm các mô hình S9 theo 1.000đ (`analysis.uplift:*_per_kvnd`, bản `_w1`) và luật tắt theo giờ (`analysis.hour_rule`). Trang Kết quả chọn sẵn hai sweep `runs/s10/<w>/sweep_ring1_dr`; θ̂ mặc định để đánh dấu là θ̂_B = 2,3 (S9).
 - **Bỏ phần lưu và hiển thị ảnh thí nghiệm** (`/api/results/figures`, mount `/figures`, thư viện hình): hình nghiên cứu nằm ở `docs/figures/` và notebook 01–06, không phải việc của dashboard.
 - `trace.py` vẫn trùng `engine.run` sau S7 (kiểm trên cấu hình tiny + W1 có biến động: cùng mọi trường kết quả, cùng bảng shocks).
+- Trang Tổng quan thêm khối **Doanh thu & lợi nhuận** (từ `observed/orders` của chuyến hoàn thành trong cửa sổ; tổng lợi nhuận bằng đúng V(π)) và khối **So với lượt cùng seed**: lợi nhuận của việc phát voucher là hiệu ghép cặp CRN với lượt tham chiếu (`all_off`, `all_on` có B, hay chính sách khác), không phải hiệu hai nhánh trong một lượt.

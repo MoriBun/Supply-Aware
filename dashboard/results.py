@@ -116,6 +116,10 @@ def gte_tables(runs_dir: Path) -> list[dict]:
     return out
 
 
+EVAL_COLUMNS = {"policy", "theta", "N_completed", "V_profit_vnd", "voucher_spent_vnd", "budget_B_vnd", "share_cells_off",
+                "mean_pickup_eta_min"}
+
+
 def evaluate_tables(runs_dir: Path, limit: int = 60) -> list[dict]:
     """Per policy_results table: policies, N mean ± se over seeds (every mode, for the comparison table)."""
     out = []
@@ -126,6 +130,8 @@ def evaluate_tables(runs_dir: Path, limit: int = 60) -> list[dict]:
             t = pd.read_parquet(path)
         except Exception:  # noqa: BLE001
             continue
+        if not EVAL_COLUMNS <= set(t.columns):
+            continue  # data set written before the VND columns of B9 (decisions H-33): not comparable, skip
         rows = []
         for (policy, theta), g in t.groupby(["policy", t["theta"].fillna(-1.0)], sort=True):
             n = len(g)

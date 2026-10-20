@@ -73,7 +73,7 @@ export function SweepPage({ defaults, runs, run, onStarted, onSelect }) {
       <div className="grid cols-3">
         <div className="note"><b>Một ngưỡng θ cho cả hệ:</b> ŝ của mỗi ô mỗi slot ${defaults.config.time.slot_min} phút khác nhau, nên cùng θ cho ra bản đồ tắt/bật khác nhau theo giờ và theo vùng. Không đặt θ riêng cho từng (ô, slot).</div>
         <div className="note"><b>Cách tìm θ*:</b> chạy π<sub>θ</sub> với mọi θ trong lưới, cùng B (một pilot), κ auto riêng cho từng θ, cùng seed; θ* = θ có N trung bình cao nhất. Vì đường thường phẳng quanh đỉnh, báo <b>tập θ*</b>: các θ không khác biệt thống kê với θ tốt nhất (so sánh ghép cặp theo seed, Bonferroni).</div>
-        <div className="note"><b>Trang này chạy đúng việc đó</b> rồi vẽ đường N(θ) lớn dần theo từng seed xong. Kết quả cũng ghi <code>results/theta_sweep.parquet</code> như lệnh <code>sweep_theta</code>, nên xuất hiện ở trang Kết quả. Có thể đánh dấu θ̂ ước lượng từ dữ liệu quan sát (H-26: 0,25 với <code>ring1</code>) để so với θ*.</div>
+        <div className="note"><b>Trang này chạy đúng việc đó</b> rồi vẽ đường N(θ) lớn dần theo từng seed xong. Kết quả cũng ghi <code>results/theta_sweep.parquet</code> như lệnh <code>sweep_theta</code>, nên xuất hiện ở trang Kết quả. Có thể đánh dấu θ̂ ước lượng từ dữ liệu quan sát (S9, T-45: θ̂_B = 2,3 với <code>ring1</code>, 1,6 với <code>city</code> trên W0; 2,15 / 2,1 trên W1) để so với θ*.</div>
       </div>
     </div>
     <div className="grid cols-2 sweep-layout">

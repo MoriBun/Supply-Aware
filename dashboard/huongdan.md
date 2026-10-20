@@ -149,6 +149,18 @@ Tên lượt, trạng thái, và các sự kiện chính: chính sách, θ cố 
 | Hủy khi xe đang đến | `Cancelled` / lượt đặt. |
 | Bỏ chờ trước khi ghép | `Abandoned` / lượt đặt. Thường ≈ 0, xem mục 8. |
 
+### Khối "Doanh thu & lợi nhuận"
+
+Tiền của các chuyến **hoàn thành** có lượt đặt trong cửa sổ, đọc từ `observed/orders` (H-42): **cước gốc** (p_s) → trừ **voucher** = **khách trả** (`net_fare`) → trừ **trả tài xế** = (1 − hoa hồng 25 %) × (cước gốc − phí nền tảng 10.000 đ) → còn **lợi nhuận nền tảng V(π)** = phí nền tảng + hoa hồng × (cước gốc − phí) − voucher. Tổng V của khối bằng đúng V(π) ở dải chỉ số phụ. "Trước voucher" = V + voucher, tức biên nền tảng nếu không phải trả voucher.
+
+Bảng theo nhánh (chuyến có / không voucher) và đường theo giờ là **mô tả**: chuyến có voucher do chính sách chọn, không ngẫu nhiên, nên không được đọc hiệu hai dòng là "lợi nhuận do voucher".
+
+### Khối "So với lượt cùng seed"
+
+Cách duy nhất đo **lợi nhuận của việc phát voucher đúng người** trong simulator: so lượt này với một lượt tham chiếu **cùng seed** (CRN: cùng khách, cùng xe), ví dụ `all_off` (không voucher) hoặc `all_on` có B (phát cho mọi người). Chọn lượt tham chiếu trong ô, khối hiện: chuyến thêm ΔN, voucher chi thêm, lợi nhuận thêm ΔV (đã trừ voucher) và biên thêm trước voucher, rồi hai tỷ số: **chuyến thêm / 100.000 đ voucher thêm** và **biên thêm / 1.000 đ voucher thêm** (≥ 1.000 đ nghĩa là mỗi 1.000 đ voucher chi thêm đem về ít nhất 1.000 đ biên nền tảng, voucher tự trả được tiền; < 1.000 đ thì ΔV âm). Ba cờ bên dưới báo cùng seed, cùng thế giới (đội xe, cầu, cửa sổ, biến động, % voucher) và cùng B; khác seed thì hiệu còn lẫn nhiễu seed, cần nhiều seed (bảng chính sách S10 có `V` và `dV_vs_ref` ghép cặp 30 seed).
+
+Lượt chạy trước bản 15/10 không có mục doanh thu (chạy lại để so).
+
 ### Hai biểu đồ theo slot
 
 - **Nhu cầu & chuyến hoàn thành:** đường đứt là lượt đặt xe, đường liền là chuyến hoàn thành, đường thứ ba là voucher được phát, mỗi điểm một slot 15 phút. Dải vàng là cửa sổ đánh giá. Chú ý: hoàn thành theo slot ghi theo **thời điểm kết thúc chuyến**, còn N(π) đếm theo **thời điểm đặt**, nên cộng các điểm trong dải vàng không ra đúng N(π).

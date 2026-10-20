@@ -100,7 +100,7 @@ export function RunPage({ defaults, runs, run, onStarted, onSelect, params = {} 
           </div>
           ${form.policy === "threshold" ? html`<fieldset><legend>Tầng ô và tầng rider của π<sub>θ</sub></legend><div className="form-grid">
             <${Field} label="θ: ngưỡng cắt ô" hint="ŝ < θ thì tắt"><input type="number" step="0.05" min="0" value=${form.theta} onChange=${num("theta")} /><//>
-            <${Field} label="Thế giới" hint="lớp config"><select value=${form.world} onChange=${set("world")}>${WORLDS.map(([k, label]) => html`<option key=${k} value=${k}>${label}</option>`)}</select><//>
+            <${Field} label="Thế giới" hint="lớp config; đổi đội xe và bán kính theo thế giới"><select value=${form.world} onChange=${(e) => { const w = e.target.value; setForm((f) => ({ ...f, world: w, fleet: w === "w1" ? 1278 : w === "tiny" ? 10 : 1150, radius: w === "tiny" ? 1 : 4 })); setCheck(null); }}>${WORLDS.map(([k, label]) => html`<option key=${k} value=${k}>${label}</option>`)}</select><//>
             <${Field} label="Phạm vi đo ŝ"><select value=${form.scope} onChange=${set("scope")}><option value="cell">cell: slack của chính ô</option><option value="ring1">ring1: ô + 6 ô kề (H-25)</option><option value="city">city: cả thành phố (T-40)</option></select><//>
             <${Field} label="Dự báo ŝ"><select value=${form.forecast} onChange=${set("forecast")}><option value="persistence">persistence: slot trước</option><option value="ar">ar: 0,7 slot trước + 0,3 cùng slot hôm qua</option></select><//>
             <${Field} label="Trễ bật lại h" hint="bật lại khi ŝ > θ + h"><input type="number" step="0.05" min="0" value=${form.hysteresis} onChange=${num("hysteresis")} /><//>

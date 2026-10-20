@@ -56,6 +56,88 @@ def kpis(result: RunResult, cfg: Config, *, theta: float | None, kappa: float | 
     }
 
 
+MONEY = ("gross_fare_vnd", "voucher_value_vnd", "net_fare_vnd", "driver_pay_vnd", "platform_profit_vnd")
+
+
+def _money_block(o, mask: np.ndarray) -> dict:
+    """Sums of the money columns over the orders in ``mask`` (same dtype path as ``engine._aggregate``)."""
+    n = int(mask.sum())
+    out = {"trips": n}
+    for c in MONEY:
+        out[c] = float(o.col(c)[mask].sum()) if n else 0.0
+    out["margin_before_voucher_vnd"] = out["platform_profit_vnd"] + out["voucher_value_vnd"]
+    out["gross_per_trip_vnd"] = _f(out["gross_fare_vnd"] / n) if n else None
+    out["profit_per_trip_vnd"] = _f(out["platform_profit_vnd"] / n) if n else None
+    out["voucher_per_trip_vnd"] = _f(out["voucher_value_vnd"] / n) if n else None
+    return out
+
+
+def revenue(result: RunResult) -> dict:
+    """Money of the completed trips whose request lies in the evaluation window (``observed/orders``, H-42):
+    gross fare → minus voucher = net fare the rider pays → minus driver pay = platform profit, whose window sum
+    is exactly ``V_profit_vnd`` of ``RunResult``. ``by_arm`` (trips with / without a voucher) and ``by_hour``
+    are descriptive: the arms are chosen by the policy, so their difference is not an uplift (see :func:`compare`)."""
+    o, s = result.orders, result.sessions
+    done = o.col("in_window") & (o.col("status") == int(OrderStatus.COMPLETED))
+    order_idx = s.col("order_idx")
+    has = order_idx >= 0
+    arm_of_order = np.zeros(o.n, dtype=np.int8)
+    arm_of_order[order_idx[has]] = s.col("arm")[has]
+    hour = (np.floor(o.col("request_time_s").astype(np.float64) / 3600.0).astype(np.int64)) % 24
+    by_hour = []
+    for h in range(24):
+        b = _money_block(o, done & (hour == h))
+        by_hour.append({"hour": h, "trips": b["trips"], "gross_fare_vnd": b["gross_fare_vnd"],
+                        "voucher_value_vnd": b["voucher_value_vnd"], "platform_profit_vnd": b["platform_profit_vnd"]})
+    return {"total": _money_block(o, done),
+            "by_arm": [{"arm": "voucher", **_money_block(o, done & (arm_of_order == 1))},
+                       {"arm": "no_voucher", **_money_block(o, done & (arm_of_order == 0))}],
+            "by_hour": by_hour}
+
+
+def _same(a, b, keys) -> bool:
+    for k in keys:
+        x, y = a, b
+        for part in k.split("."):
+            x = (x or {}).get(part)
+            y = (y or {}).get(part)
+        if x != y:
+            return False
+    return True
+
+
+def compare(run: dict, ref: dict) -> dict:
+    """Paired difference ``run − ref`` of two finished single-theta runs (``summary`` + ``config`` of each):
+    extra trips, extra voucher spend, extra profit, and the two ratios that say whether vouchers paid for
+    themselves. Honest only under CRN: same seed and same world; the flags report both, and the budget."""
+    for name, r in (("run", run), ("ref", ref)):
+        if not (r.get("summary") or {}).get("revenue"):
+            raise ValueError(f"{name}: lượt này chưa có mục doanh thu (chạy trước bản này); chạy lại để so sánh")
+    ka, kb = run["summary"]["kpis"], ref["summary"]["kpis"]
+    ra, rb = run["summary"]["revenue"]["total"], ref["summary"]["revenue"]["total"]
+    delta = {"N_completed": ka["N_completed"] - kb["N_completed"]}
+    for c in MONEY + ("margin_before_voucher_vnd",):
+        delta[c] = ra[c] - rb[c]
+    dv = delta["voucher_value_vnd"]
+    ratios = {
+        "extra_trips_per_100k_vnd": _f(delta["N_completed"] / (dv / 100_000.0)) if dv > 0 else None,
+        "extra_margin_per_1k_vnd_voucher": _f(delta["margin_before_voucher_vnd"] / (dv / 1_000.0)) if dv > 0 else None,
+        "extra_profit_per_trip_vnd": _f(delta["platform_profit_vnd"] / delta["N_completed"]) if delta["N_completed"] else None,
+    }
+    ca, cb = run.get("config") or {}, ref.get("config") or {}
+    return {
+        "run": {"id": run.get("id"), "name": run.get("name"), "policy": ka.get("policy"), "theta": ka.get("theta"),
+                "N_completed": ka["N_completed"], "V_profit_vnd": ka["V_profit_vnd"], "voucher_spent_vnd": ka["voucher_spent_vnd"]},
+        "ref": {"id": ref.get("id"), "name": ref.get("name"), "policy": kb.get("policy"), "theta": kb.get("theta"),
+                "N_completed": kb["N_completed"], "V_profit_vnd": kb["V_profit_vnd"], "voucher_spent_vnd": kb["voucher_spent_vnd"]},
+        "delta": delta, "ratios": ratios,
+        "same_seed": _same(ca, cb, ("meta.run_seed", "meta.world_seed")),
+        "same_world": _same(ca, cb, ("space.grid_radius", "space.edge_km", "supply.fleet_size", "demand.demand_scale",
+                                     "time.window_min", "time.warmup_min", "shocks.enabled", "voucher.pct_of_fare")),
+        "same_budget": (ka.get("budget_B_vnd") == kb.get("budget_B_vnd")),
+    }
+
+
 def slot_series(trace: Trace, clock: Clock) -> dict:
     """One value per slot: cells off, mean forecast, completed / requests / offers / spend, window flag."""
     rows = {"slot": [], "t_start": [], "hour": [], "in_window": [], "cells_off": [], "s_hat_mean": [],
